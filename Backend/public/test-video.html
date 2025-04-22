@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        video {
+            width: 100%;
+            max-height: 400px;
+            background-color: #000;
+        }
+        .info {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>Video Test Page</h1>
+    
+    <div class="info">
+        <p>This page tests direct video loading from the SFTP server via the /remote-videos/ route.</p>
+    </div>
+    
+    <div>
+        <label for="videoUrl">Video URL:</label>
+        <input type="text" id="videoUrl" value="/remote-videos/1744304089805-807872156.mp4">
+        <button onclick="loadVideo()">Load Video</button>
+        <button onclick="testFetch()">Test Fetch</button>
+    </div>
+    
+    <div>
+        <h2>Video Player</h2>
+        <video id="videoPlayer" controls crossorigin="anonymous">
+            <source id="videoSource" src="" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    
+    <div id="log">
+        <strong>Console Log:</strong>
+        <pre id="logContent"></pre>
+    </div>
+    
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('logContent');
+            logElement.textContent += message + '\n';
+            console.log(message);
+        }
+        
+        function loadVideo() {
+            const videoUrl = document.getElementById('videoUrl').value;
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoSource = document.getElementById('videoSource');
+            
+            log(`Loading video from URL: ${videoUrl}`);
+            
+            videoSource.src = videoUrl;
+            videoPlayer.load();
+            
+            // Add event listeners
+            videoPlayer.onloadstart = () => log('Video load started');
+            videoPlayer.onloadedmetadata = () => log(`Video metadata loaded: ${videoPlayer.videoWidth}x${videoPlayer.videoHeight}`);
+            videoPlayer.oncanplay = () => log('Video can play');
+            videoPlayer.onplay = () => log('Video playback started');
+            videoPlayer.onerror = (e) => {
+                log(`Video error: ${videoPlayer.error ? videoPlayer.error.code : 'unknown'}`);
+                log(`Error message: ${videoPlayer.error ? videoPlayer.error.message : 'unknown'}`);
+            };
+        }
+        
+        function testFetch() {
+            const videoUrl = document.getElementById('videoUrl').value;
+            log(`Testing fetch for URL: ${videoUrl}`);
+            
+            fetch(videoUrl)
+                .then(response => {
+                    log(`Fetch response status: ${response.status}`);
+                    
+                    // Log headers
+                    const headers = {};
+                    response.headers.forEach((value, key) => {
+                        headers[key] = value;
+                    });
+                    log(`Response headers: ${JSON.stringify(headers, null, 2)}`);
+                    
+                    return response.blob();
+                })
+                .then(blob => {
+                    log(`Blob received: ${blob.size} bytes, type: ${blob.type}`);
+                })
+                .catch(err => {
+                    log(`Fetch error: ${err.message}`);
+                });
+        }
+        
+        // Initialize with empty log
+        log('Video test page loaded');
+    </script>
+</body>
+</html> 

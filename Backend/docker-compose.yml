@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  ubuntu-sftp:
+    image: atmoz/sftp
+    ports:
+      - "2222:22"
+    volumes:
+      - ./ubuntu-server-storage:/home/ubuntu_user/netflix_videos
+    command: ubuntu_user:Krishna@1709:1001:1001:/home/ubuntu_user
+    restart: unless-stopped
+    networks:
+      - netflix-network
+    # Add an entrypoint script to ensure directories exist
+    entrypoint: |
+      /bin/sh -c "
+      mkdir -p /home/ubuntu_user/netflix_videos/videos 
+      chmod -R 777 /home/ubuntu_user/netflix_videos
+      chown -R ubuntu_user:ubuntu_user /home/ubuntu_user
+      /entrypoint ubuntu_user:Krishna@1709:1001:1001:/home/ubuntu_user
+      "
+
+  # Node.js application
+  netflix-backend:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "5002:5002"
+    depends_on:
+      - ubuntu-sftp
+    environment:
+      - SFTP_HOST=ubuntu-sftp
+      - SFTP_PORT=22
+      - SFTP_USERNAME=ubuntu_user
+      - SFTP_PASSWORD=Krishna@1709
+      - SFTP_REMOTE_PATH=/home/ubuntu_user/netflix_videos
+      - DEBUG_SFTP=true
+    command: >
+      bash -c "npm install && npm start"
+    networks:
+      - netflix-network
+
+networks:
+  netflix-network:
+    driver: bridge 

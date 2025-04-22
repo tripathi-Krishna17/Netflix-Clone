@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Required - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .premium-banner {
+            background: linear-gradient(90deg, #E50914 0%, #FF5F6D 100%);
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5); }
+            50% { box-shadow: 0 4px 30px rgba(229, 9, 20, 0.8); }
+            100% { box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5); }
+        }
+
+        .upgrade-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .upgrade-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="bg-black bg-opacity-90 w-full">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-red-600 text-2xl font-bold">NETFLIX</a>
+            <div class="flex items-center space-x-6">
+                <a href="/movies" class="text-white font-medium">Movies</a>
+                <a href="/tvshows" class="text-gray-400 hover:text-white transition-colors">TV Shows</a>
+                <a href="/movies/watchlist" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bookmark mr-1"></i> My List
+                </a>
+                <div class="relative group">
+                    <button class="flex items-center text-gray-400 hover:text-white transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{user.username}}&background=random" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+                        <span>{{user.username}}</span>
+                        <i class="fas fa-caret-down ml-2"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block">
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Settings</a>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Premium Required Content -->
+    <div class="flex-grow flex items-center justify-center">
+        <div class="container mx-auto px-4 max-w-4xl">
+            <div class="bg-gray-900 bg-opacity-90 rounded-lg overflow-hidden">
+                <div class="premium-banner px-8 py-4 text-white text-center">
+                    <h1 class="text-3xl font-bold">Premium Content</h1>
+                </div>
+                
+                <div class="p-8 text-center">
+                    <div class="mb-8">
+                        <i class="fas fa-crown text-6xl text-yellow-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold mb-2">This Content Requires Premium Access</h2>
+                        <p class="text-gray-400 max-w-lg mx-auto">{{message}}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                            <h3 class="text-xl font-bold mb-3">Free Plan (Current)</h3>
+                            <ul class="text-left space-y-2 mb-6">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                    <span>Access to free content</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                    <span>Standard definition (SD) quality</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                    <span class="text-gray-500">No premium content</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                    <span class="text-gray-500">No offline viewing</span>
+                                </li>
+                            </ul>
+                            <p class="text-xl">Free</p>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-6 rounded-lg border-2 border-red-600">
+                            <h3 class="text-xl font-bold mb-3">Premium Plan</h3>
+                            <ul class="text-left space-y-2 mb-6">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                    <span>Access to all content</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                    <span>Ultra HD and HDR quality</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                    <span>Unlimited viewing on all devices</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                    <span>Download for offline viewing</span>
+                                </li>
+                            </ul>
+                            <p class="text-xl">$9.99/month</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col items-center">
+                        <a href="/pricing" class="upgrade-btn bg-red-600 text-white px-8 py-3 rounded-lg text-lg font-bold mb-4 inline-block">
+                            Upgrade to Premium
+                        </a>
+                        <a href="/movies" class="text-gray-400 hover:text-white transition-colors">
+                            Browse Free Content
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-black bg-opacity-90 py-6 mt-8">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>Netflix Clone - For educational purposes only</p>
+        </div>
+    </footer>
+</body>
+</html> 

@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Clone - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/swiper/swiper-bundle.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(to bottom, rgba(20, 20, 20, 0) 0%, rgba(20, 20, 20, 0.8) 80%, rgba(20, 20, 20, 1) 100%);
+        }
+
+        .swiper-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .swiper-slide {
+            height: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 8px;
+        }
+
+        .swiper-slide.movie-slide {
+            height: 200px;
+        }
+
+        @media (min-width: 768px) {
+            .swiper-slide.movie-slide {
+                height: 280px;
+            }
+        }
+
+        .movie-card {
+            position: relative;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            aspect-ratio: 2/3;
+            height: 100%;
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            aspect-ratio: 2/3;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            z-index: 20;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-card:hover .movie-info {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .movie-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0) 100%);
+            padding: 1rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .premium-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #E50914;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-radius: 0.2rem;
+            z-index: 5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .navbar {
+            background-color: transparent;
+            transition: background-color 0.3s ease;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .navbar.scrolled {
+            background-color: var(--netflix-black);
+        }
+
+        .hero-section {
+            height: 80vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            padding: 2rem;
+            width: 60%;
+            z-index: 2;
+        }
+
+        .watch-btn {
+            background-color: var(--netflix-red);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .watch-btn:hover {
+            background-color: #c00811;
+        }
+
+        .info-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .info-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Progress bar styles */
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .progress {
+            height: 100%;
+            background-color: var(--netflix-red);
+        }
+
+        /* Section headers */
+        .section-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* For mobile responsiveness */
+        @media (max-width: 768px) {
+            .hero-section {
+                height: 60vh;
+            }
+
+            .hero-content {
+                width: 90%;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar px-4 py-3">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-6">
+                <a href="/dashboard" class="text-red-600">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/200px-Netflix_2015_logo.svg.png" alt="Netflix Logo" class="h-7">
+                </a>
+                <ul class="hidden md:flex space-x-6">
+                    <li><a href="/dashboard" class="text-white font-medium hover:text-gray-300">Home</a></li>
+                    <li><a href="/movies" class="text-white hover:text-gray-300">Movies</a></li>
+                    <li><a href="/mylist" class="text-white hover:text-gray-300">My List</a></li>
+                </ul>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" placeholder="Search..." class="bg-black border border-gray-700 rounded px-3 py-1 text-sm text-white focus:outline-none focus:border-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 absolute right-2 top-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <div class="dropdown relative group">
+                    <button class="flex items-center space-x-1">
+                        <img src="https://occ-0-395-778.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABTYctxxbe-UkKEdlMxXm4FVGD6DqTHkQ0TQ5CQJ9jbOMnG0CYxYcSICcTUQz8DrB7CpKUGpqJVMtEqksLlvSJx2ac3Ak.png?r=a41" alt="Profile" class="w-8 h-8 rounded-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-black border border-gray-800 rounded shadow-lg z-50">
+                        <a href="/profile" class="block px-4 py-2 text-white hover:bg-gray-800">Profile</a>
+                        <a href="/account" class="block px-4 py-2 text-white hover:bg-gray-800">Account</a>
+                        {{#if user.isPremium}}
+                            <div class="px-4 py-2 text-sm text-red-600 font-semibold">Premium Member</div>
+                        {{else}}
+                            <a href="/upgrade" class="block px-4 py-2 text-red-600 hover:bg-gray-800">Upgrade to Premium</a>
+                        {{/if}}
+                        <div class="border-t border-gray-800 my-1"></div>
+                        <a href="/logout" class="block px-4 py-2 text-white hover:bg-gray-800">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Featured Movies Carousel -->
+    <div class="hero-section w-full">
+        {{#if featuredMovies.length}}
+            <div class="swiper-container featured-swiper h-full">
+                <div class="swiper-wrapper">
+                    {{#each featuredMovies}}
+                        <div class="swiper-slide">
+                            <div class="relative w-full h-full">
+                                <img src="{{this.backdropPath}}" alt="{{this.title}}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/1200x600?text=No+Image'">
+                                <div class="absolute inset-0 hero-gradient"></div>
+                                <div class="hero-content">
+                                    <h1 class="text-4xl md:text-5xl font-bold mb-3">{{this.title}}</h1>
+                                    <div class="flex items-center space-x-4 mb-4">
+                                        <span class="text-green-500 font-semibold">{{this.ratings}}% Match</span>
+                                        <span>{{formatDate this.releaseDate}}</span>
+                                        {{#if this.runtime}}
+                                            <span>{{this.runtime}} min</span>
+                                        {{/if}}
+                                        {{#unless this.isFree}}
+                                            <span class="bg-red-600 text-white text-xs px-2 py-0.5 rounded">PREMIUM</span>
+                                        {{/unless}}
+                                    </div>
+                                    <p class="text-gray-300 text-sm md:text-base mb-6 line-clamp-3">{{this.overview}}</p>
+                                    <div class="flex space-x-4">
+                                        <a href="/movies/{{this._id}}/watch" class="watch-btn flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                            </svg>
+                                            Play
+                                        </a>
+                                        <a href="/movies/{{this._id}}" class="info-btn flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd" />
+                                            </svg>
+                                            More Info
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+                <div class="swiper-pagination featured-pagination absolute bottom-16 z-10"></div>
+            </div>
+        {{else}}
+            <div class="w-full h-full flex items-center justify-center">
+                <div class="text-center">
+                    <div class="netflix-n mx-auto mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 276.742" class="w-24 h-24 text-red-600 mx-auto">
+                            <path d="M140.803 258.904c-15.404 2.705-31.079 3.516-47.294 5.676l-49.458-144.856v151.073c-15.404 1.621-29.457 3.783-44.051 5.945v-276.742h41.08l56.212 157.021v-157.021h43.511v258.904zm85.131-157.558c16.757 0 42.431-.811 57.835-.811v43.24c-19.189 0-41.619 0-57.835.811v64.322c25.405-1.621 50.809-3.785 76.482-4.596v41.617l-119.724 9.461v-255.39h119.724v43.241h-76.482v58.105zm237.284-58.104h-44.862v198.908c-14.594 0-29.188 0-43.239.539v-199.447h-44.862v-43.242h132.965l-.002 43.242zm70.266 55.132h59.187v43.24h-59.187v98.104h-42.433v-239.718h120.808v43.241h-78.375v55.133zm148.641 103.507c24.594.539 49.456 2.434 73.51 3.783v42.701c-38.646-2.434-77.293-4.863-116.75-5.676v-242.689h43.24v201.881zm109.994 49.457c13.783.812 28.377 1.623 42.43 3.242v-254.58h-42.43v251.338zm231.881-251.338l-54.863 131.615 54.863 145.127c-16.217-2.162-32.432-5.135-48.648-7.838l-31.078-79.994-31.617 73.51c-15.678-2.705-30.812-3.516-46.484-5.678l55.672-126.75-50.269-129.992h46.482l28.377 72.699 30.27-72.699h47.295z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4">Welcome to Netflix</h2>
+                    <p class="text-gray-400 mb-8 max-w-lg mx-auto">Explore our collection of movies and TV shows. Add your favorites to your list and enjoy watching!</p>
+                    <a href="/movies" class="watch-btn inline-flex items-center px-6 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        Browse Movies
+                    </a>
+                </div>
+            </div>
+        {{/if}}
+    </div>
+
+    <div class="container mx-auto px-4 pb-20">
+        <!-- Continue Watching Section -->
+        {{#if watchHistory.length}}
+            <h2 class="section-header">Continue Watching</h2>
+            <div class="swiper-container my-swiper">
+                <div class="swiper-wrapper">
+                    {{#each watchHistory}}
+                        {{#if this.content}}
+                            <div class="swiper-slide movie-slide">
+                                <div class="movie-card w-full h-full">
+                                    <a href="/movies/{{this.content._id}}/watch">
+                                        <img src="{{this.content.posterPath}}" alt="{{this.content.title}}" class="rounded-md w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                                        {{#unless this.content.isFree}}
+                                            <div class="premium-badge">PREMIUM</div>
+                                        {{/unless}}
+                                        <div class="movie-info">
+                                            <h3 class="text-sm md:text-base font-semibold mb-1">{{this.content.title}}</h3>
+                                            <div class="flex items-center mt-1">
+                                                <span class="text-xs text-green-500 font-medium">{{this.content.ratings}}%</span>
+                                                <span class="text-xs ml-2 text-gray-300">{{formatDate this.content.releaseDate}}</span>
+                                            </div>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress" style="width: {{this.progress}}%;"></div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        {{/if}}
+                    {{/each}}
+                </div>
+                <div class="swiper-button-next text-white"></div>
+                <div class="swiper-button-prev text-white"></div>
+            </div>
+        {{/if}}
+
+        <!-- Trending Now Section -->
+        {{#if trendingMovies.length}}
+            <h2 class="section-header">Trending Now</h2>
+            <div class="swiper-container my-swiper">
+                <div class="swiper-wrapper">
+                    {{#each trendingMovies}}
+                        <div class="swiper-slide movie-slide">
+                            <div class="movie-card w-full h-full">
+                                <a href="/movies/{{this._id}}">
+                                    <img src="{{this.posterPath}}" alt="{{this.title}}" class="rounded-md w-full h-full object-cover" 
+                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=No+Image+Available';">
+                                    {{#unless this.isFree}}
+                                        <div class="premium-badge">PREMIUM</div>
+                                    {{/unless}}
+                                    <div class="movie-info">
+                                        <h3 class="text-sm md:text-base font-semibold mb-1">{{this.title}}</h3>
+                                        <div class="flex items-center mt-1">
+                                            <span class="text-xs text-green-500 font-medium">{{this.ratings}}%</span>
+                                            <span class="text-xs ml-2 text-gray-300">{{formatDate this.releaseDate}}</span>
+                                        </div>
+                                        {{#if this.genres.length}}
+                                        <div class="text-xs text-gray-400 mt-1 line-clamp-1">
+                                            {{#each this.genres}}
+                                                {{#if @index}}, {{/if}}{{this}}
+                                            {{/each}}
+                                        </div>
+                                        {{/if}}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+                <div class="swiper-button-next text-white"></div>
+                <div class="swiper-button-prev text-white"></div>
+            </div>
+        {{else}}
+            <!-- Fallback when trending movies aren't available -->
+            <div id="trending-fallback" class="mb-12">
+                <h2 class="section-header">Trending Now</h2>
+                <div class="p-4 bg-gray-800 bg-opacity-50 rounded-md">
+                    <p class="text-center text-gray-400">Loading trending movies...</p>
+                    <div class="flex justify-center mt-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                    </div>
+                </div>
+            </div>
+        {{/if}}
+
+        <!-- Recommended For You Section -->
+        {{#if recommendedMovies.length}}
+            <h2 class="section-header">Recommended For You</h2>
+            <div class="swiper-container my-swiper">
+                <div class="swiper-wrapper">
+                    {{#each recommendedMovies}}
+                        <div class="swiper-slide movie-slide">
+                            <div class="movie-card w-full h-full">
+                                <a href="/movies/{{this._id}}">
+                                    <img src="{{this.posterPath}}" alt="{{this.title}}" class="rounded-md w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                                    {{#unless this.isFree}}
+                                        <div class="premium-badge">PREMIUM</div>
+                                    {{/unless}}
+                                    <div class="movie-info">
+                                        <h3 class="text-sm md:text-base font-semibold mb-1">{{this.title}}</h3>
+                                        <div class="flex items-center mt-1">
+                                            <span class="text-xs text-green-500 font-medium">{{this.ratings}}%</span>
+                                            <span class="text-xs ml-2 text-gray-300">{{formatDate this.releaseDate}}</span>
+                                        </div>
+                                        {{#if this.genres.length}}
+                                        <div class="text-xs text-gray-400 mt-1 line-clamp-1">
+                                            {{#each this.genres}}
+                                                {{#if @index}}, {{/if}}{{this}}
+                                            {{/each}}
+                                        </div>
+                                        {{/if}}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+                <div class="swiper-button-next text-white"></div>
+                <div class="swiper-button-prev text-white"></div>
+            </div>
+        {{/if}}
+
+        <!-- My List Section -->
+        {{#if watchlist.length}}
+            <h2 class="section-header">My List</h2>
+            <div class="swiper-container my-swiper">
+                <div class="swiper-wrapper">
+                    {{#each watchlist}}
+                        <div class="swiper-slide movie-slide">
+                            <div class="movie-card w-full h-full">
+                                <a href="/movies/{{this._id}}">
+                                    <img src="{{this.posterPath}}" alt="{{this.title}}" class="rounded-md w-full h-full object-cover" 
+                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=No+Image+Available';">
+                                    {{#unless this.isFree}}
+                                        <div class="premium-badge">PREMIUM</div>
+                                    {{/unless}}
+                                    <div class="movie-info">
+                                        <h3 class="text-sm md:text-base font-semibold mb-1">{{this.title}}</h3>
+                                        <div class="flex items-center mt-1">
+                                            <span class="text-xs text-green-500 font-medium">{{this.ratings}}%</span>
+                                            <span class="text-xs ml-2 text-gray-300">{{formatDate this.releaseDate}}</span>
+                                        </div>
+                                        {{#if this.genres.length}}
+                                        <div class="text-xs text-gray-400 mt-1 line-clamp-1">
+                                            {{#each this.genres}}
+                                                {{#if @index}}, {{/if}}{{this}}
+                                            {{/each}}
+                                        </div>
+                                        {{/if}}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+                <div class="swiper-button-next text-white"></div>
+                <div class="swiper-button-prev text-white"></div>
+            </div>
+        {{/if}}
+
+        <!-- Recently Added Section -->
+        {{#if latestMovies.length}}
+            <h2 class="section-header">Recently Added</h2>
+            <div class="swiper-container my-swiper">
+                <div class="swiper-wrapper">
+                    {{#each latestMovies}}
+                        <div class="swiper-slide movie-slide">
+                            <div class="movie-card w-full h-full">
+                                <a href="/movies/{{this._id}}">
+                                    <img src="{{this.posterPath}}" alt="{{this.title}}" class="rounded-md w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                                    {{#unless this.isFree}}
+                                        <div class="premium-badge">PREMIUM</div>
+                                    {{/unless}}
+                                    <div class="movie-info">
+                                        <h3 class="text-sm md:text-base font-semibold mb-1">{{this.title}}</h3>
+                                        <div class="flex items-center mt-1">
+                                            <span class="text-xs text-green-500 font-medium">{{this.ratings}}%</span>
+                                            <span class="text-xs ml-2 text-gray-300">{{formatDate this.releaseDate}}</span>
+                                        </div>
+                                        {{#if this.genres.length}}
+                                        <div class="text-xs text-gray-400 mt-1 line-clamp-1">
+                                            {{#each this.genres}}
+                                                {{#if @index}}, {{/if}}{{this}}
+                                            {{/each}}
+                                        </div>
+                                        {{/if}}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+                <div class="swiper-button-next text-white"></div>
+                <div class="swiper-button-prev text-white"></div>
+            </div>
+        {{/if}}
+    </div>
+
+    <script>
+        // Initialize Swiper for featured movies
+        var featuredSwiper = new Swiper('.featured-swiper', {
+            effect: 'fade',
+            fadeEffect: {
+                crossFade: true
+            },
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: '.featured-pagination',
+                clickable: true,
+            },
+            loop: true
+        });
+
+        // Initialize Swiper for movie rows
+        var swipers = document.querySelectorAll('.my-swiper');
+        swipers.forEach(function(swiper) {
+            new Swiper(swiper, {
+                slidesPerView: 2,
+                spaceBetween: 12,
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev',
+                },
+                breakpoints: {
+                    // when window width is >= 480px
+                    480: {
+                        slidesPerView: 3,
+                        spaceBetween: 12
+                    },
+                    // when window width is >= 640px
+                    640: {
+                        slidesPerView: 3,
+                        spaceBetween: 15
+                    },
+                    // when window width is >= 768px
+                    768: {
+                        slidesPerView: 4,
+                        spaceBetween: 16
+                    },
+                    // when window width is >= 1024px
+                    1024: {
+                        slidesPerView: 5,
+                        spaceBetween: 18
+                    },
+                    // when window width is >= 1280px
+                    1280: {
+                        slidesPerView: 6,
+                        spaceBetween: 20
+                    }
+                }
+            });
+        });
+
+        // Fix all broken images and initialize trending movies fallback
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fix all broken images
+            var images = document.querySelectorAll('img');
+            images.forEach(function(img) {
+                if (!img.hasAttribute('onerror')) {
+                    img.onerror = function() {
+                        this.onerror = null;
+                        this.src = 'https://via.placeholder.com/300x450?text=No+Image+Available';
+                    };
+                }
+            });
+            
+            // Fetch trending movies from API if none were loaded from the server
+            const trendingFallback = document.getElementById('trending-fallback');
+            if (trendingFallback) {
+                console.log('No trending movies from server, fetching via API...');
+                fetchTrendingMovies();
+            }
+        });
+
+        // Function to fetch trending movies with fallback mechanism
+        async function fetchTrendingMovies() {
+            const trendingFallback = document.getElementById('trending-fallback');
+            if (!trendingFallback) return;
+            
+            try {
+                // First try our backend API
+                console.log('Fetching trending movies from backend API...');
+                const response = await fetch('/movies/trending');
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                
+                const moviesData = await response.json();
+                
+                if (moviesData && moviesData.length > 0) {
+                    // Success - render the movies
+                    console.log('Successfully loaded trending movies from backend');
+                    renderTrendingMovies(moviesData);
+                } else {
+                    throw new Error('No movies data received from backend');
+                }
+            } catch (backendError) {
+                console.error('Backend API failed:', backendError);
+                
+                // Try direct TMDB API call as last resort
+                try {
+                    console.log('Falling back to direct TMDB API...');
+                    const apiKey = '6ec9180bfc843aba1677d9ff1b531116';
+                    const tmdbResponse = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`);
+                    
+                    if (!tmdbResponse.ok) {
+                        throw new Error(`TMDB API responded with status: ${tmdbResponse.status}`);
+                    }
+                    
+                    const tmdbData = await tmdbResponse.json();
+                    
+                    if (tmdbData && tmdbData.results && tmdbData.results.length > 0) {
+                        console.log('Successfully loaded trending movies directly from TMDB');
+                        
+                        // Transform TMDB data to our format
+                        const moviesData = tmdbData.results.slice(0, 12).map(movie => ({
+                            id: movie.id,
+                            tmdbId: movie.id,
+                            title: movie.title || 'Unknown Title',
+                            overview: movie.overview || 'No overview available',
+                            posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+                            backdropPath: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
+                            releaseDate: movie.release_date || 'Unknown',
+                            ratings: movie.vote_average ? Math.round(movie.vote_average * 10) : 0
+                        }));
+                        
+                        renderTrendingMovies(moviesData);
+                    } else {
+                        showTrendingError();
+                    }
+                } catch (tmdbError) {
+                    console.error('Direct TMDB API call failed:', tmdbError);
+                    showTrendingError();
+                }
+            }
+        }
+
+        // Render the trending movies
+        function renderTrendingMovies(moviesData) {
+            const trendingFallback = document.getElementById('trending-fallback');
+            if (!trendingFallback) return;
+            
+            // Create trending movies section
+            const swiperContainer = document.createElement('div');
+            swiperContainer.className = 'swiper-container my-swiper';
+            
+            const swiperWrapper = document.createElement('div');
+            swiperWrapper.className = 'swiper-wrapper';
+            
+            moviesData.forEach(movie => {
+                const slide = document.createElement('div');
+                slide.className = 'swiper-slide movie-slide';
+                
+                // For direct TMDB movies without a database ID, use the tmdbId
+                const movieUrl = movie._id 
+                    ? `/movies/${movie._id}` 
+                    : `/movies/tmdb/${movie.tmdbId || movie.id}`;
+                
+                slide.innerHTML = `
+                    <div class="movie-card w-full h-full">
+                        <a href="${movieUrl}">
+                            <img src="${movie.posterPath || ''}" alt="${movie.title}" class="rounded-md w-full h-full object-cover" 
+                                onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=No+Image+Available';">
+                            <div class="movie-info">
+                                <h3 class="text-sm md:text-base font-semibold mb-1">${movie.title}</h3>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-xs text-green-500 font-medium">${movie.ratings}%</span>
+                                    <span class="text-xs ml-2 text-gray-300">${movie.releaseDate}</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+                
+                swiperWrapper.appendChild(slide);
+            });
+            
+            swiperContainer.appendChild(swiperWrapper);
+            
+            // Add navigation buttons
+            const nextButton = document.createElement('div');
+            nextButton.className = 'swiper-button-next text-white';
+            
+            const prevButton = document.createElement('div');
+            prevButton.className = 'swiper-button-prev text-white';
+            
+            swiperContainer.appendChild(nextButton);
+            swiperContainer.appendChild(prevButton);
+            
+            // Replace the fallback with the new content
+            trendingFallback.innerHTML = '<h2 class="section-header">Trending Now</h2>';
+            trendingFallback.appendChild(swiperContainer);
+            
+            // Initialize Swiper for this new container
+            new Swiper(swiperContainer, {
+                slidesPerView: 2,
+                spaceBetween: 12,
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev',
+                },
+                breakpoints: {
+                    480: { slidesPerView: 3, spaceBetween: 12 },
+                    640: { slidesPerView: 3, spaceBetween: 15 },
+                    768: { slidesPerView: 4, spaceBetween: 16 },
+                    1024: { slidesPerView: 5, spaceBetween: 18 },
+                    1280: { slidesPerView: 6, spaceBetween: 20 }
+                }
+            });
+        }
+
+        // Show error message when all attempts fail
+        function showTrendingError() {
+            const trendingFallback = document.getElementById('trending-fallback');
+            if (!trendingFallback) return;
+            
+            trendingFallback.innerHTML = `
+                <h2 class="section-header">Trending Now</h2>
+                <div class="p-4 bg-gray-800 bg-opacity-50 rounded-md">
+                    <p class="text-center text-gray-400">Unable to load trending movies</p>
+                    <p class="text-center text-gray-500 text-sm mt-2">Please try again later</p>
+                    <div class="text-center mt-4">
+                        <button onclick="fetchTrendingMovies()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Navbar background change on scroll
+        window.addEventListener('scroll', function() {
+            var navbar = document.querySelector('.navbar');
+            if (window.scrollY > 10) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html> 

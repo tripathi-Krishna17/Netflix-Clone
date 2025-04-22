@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add TV Show - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .glass-effect {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--netflix-red);
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.25);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .show-card {
+            transition: all 0.3s ease;
+        }
+
+        .show-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .add-btn {
+            background: linear-gradient(45deg, var(--netflix-red), #ff4b2b);
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-black p-4">
+    <canvas id="background-canvas"></canvas>
+
+    <div class="container mx-auto">
+        <div class="glass-effect p-8 rounded-2xl space-y-8">
+            <!-- Back Button -->
+            <a href="/admin/dashboard" class="inline-flex items-center text-white hover:text-red-500 transition-colors duration-300 mb-8">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Dashboard
+            </a>
+
+            <h1 class="text-3xl font-bold text-white mb-8">Add New TV Show</h1>
+
+            <!-- Search Form -->
+            <div class="glass-effect rounded-xl p-6">
+                <div class="flex gap-4 mb-6">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="Search for TV shows..." 
+                            class="w-full px-4 py-2 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <button id="fetchLatest" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors duration-300">
+                        Fetch Latest
+                    </button>
+                </div>
+            </div>
+
+            <!-- TV Show Details Section -->
+            <div id="tvShowDetails" class="glass-effect rounded-xl p-6 hidden">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- TV Show Poster -->
+                    <div class="w-full md:w-1/3">
+                        <img id="tvShowPoster" src="" alt="TV Show Poster" class="w-full rounded-lg shadow-lg">
+                    </div>
+                    
+                    <!-- TV Show Information -->
+                    <div class="w-full md:w-2/3">
+                        <h2 id="tvShowTitle" class="text-2xl font-bold text-white mb-2"></h2>
+                        <div class="flex items-center gap-4 mb-4">
+                            <span id="tvShowFirstAirDate" class="text-gray-400"></span>
+                            <span id="tvShowSeasons" class="text-gray-400"></span>
+                            <span id="tvShowRating" class="text-red-500 font-medium"></span>
+                        </div>
+                        <p id="tvShowOverview" class="text-gray-300 mb-4"></p>
+                        
+                        <!-- Genres -->
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-white mb-2">Genres</h3>
+                            <div id="tvShowGenres" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- Cast -->
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-white mb-2">Cast</h3>
+                            <div id="tvShowCast" class="flex gap-4 overflow-x-auto pb-4"></div>
+                        </div>
+
+                        <!-- Production Companies -->
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-white mb-2">Production Companies</h3>
+                            <div id="tvShowCompanies" class="flex flex-wrap gap-4"></div>
+                        </div>
+
+                        <!-- Video Upload Section -->
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-white mb-2">Video Upload</h3>
+                            <div class="flex flex-col gap-2">
+                                <input type="file" id="tvShowVideo" accept="video/*" class="py-2 px-3 bg-gray-800 rounded-lg text-white w-full">
+                                <div id="fileSizeError" class="text-red-500 text-sm hidden">File size exceeds the maximum limit of 2GB.</div>
+                                <label class="inline-flex items-center text-white cursor-pointer">
+                                    <input type="checkbox" id="isFreeToggle" class="sr-only peer">
+                                    <div class="relative w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-red-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                                    <span class="ml-3">Free Content (available to non-premium users)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div id="uploadProgressContainer" class="mb-6 bg-gray-800 p-4 rounded-lg hidden">
+                            <div class="mb-2 flex justify-between items-center">
+                                <span id="uploadStatusMessage" class="text-white">Uploading...</span>
+                                <span id="uploadPercent" class="text-white font-medium">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+                                <div id="uploadProgressBar" class="bg-red-600 h-4 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <div class="mt-2 flex justify-between items-center text-sm text-gray-400">
+                                <span id="uploadFileName" class="text-white"></span>
+                                <span><span id="uploadedSize">0 MB</span> / <span id="totalSize">0 MB</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex gap-3">
+                            <!-- Add to Library Button -->
+                            <button id="addToLibrary" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors duration-300">
+                                Add to Library
+                            </button>
+                            <!-- Add Without Video Button -->
+                            <button id="addToLibrarySimple" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors duration-300">
+                                Add Without Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div id="searchResults" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Three.js Wave Animation
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.querySelector('#background-canvas'),
+            alpha: true,
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Create wave geometry
+        const waveGeometry = new THREE.PlaneGeometry(20, 20, 150, 150);
+        const waveMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color('#E50914') },
+                uMouse: { value: new THREE.Vector2(0, 0) }
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform vec2 uMouse;
+                varying vec2 vUv;
+                varying float vElevation;
+
+                void main() {
+                    vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+                    
+                    float elevation = sin(modelPosition.x * 2.0 + uTime * 2.0) * 0.2
+                                  * sin(modelPosition.y * 2.0 + uTime * 2.0) * 0.2;
+                    
+                    float distanceToMouse = length(uv - uMouse);
+                    float mouseRipple = sin(distanceToMouse * 10.0 - uTime * 5.0) * 0.1
+                                    * smoothstep(0.5, 0.0, distanceToMouse);
+                    
+                    elevation += mouseRipple;
+                    
+                    modelPosition.z += elevation;
+                    
+                    vElevation = elevation;
+                    vUv = uv;
+
+                    vec4 viewPosition = viewMatrix * modelPosition;
+                    vec4 projectedPosition = projectionMatrix * viewPosition;
+
+                    gl_Position = projectedPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                varying vec2 vUv;
+                varying float vElevation;
+
+                void main() {
+                    float intensity = vElevation * 5.0 + 0.5;
+                    vec3 color = mix(uColor, vec3(1.0), vElevation * 0.5);
+                    gl_FragColor = vec4(color, intensity * 0.7);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+
+        const waves = new THREE.Mesh(waveGeometry, waveMaterial);
+        waves.rotation.x = -Math.PI * 0.45;
+        scene.add(waves);
+
+        camera.position.set(0, 0, 3);
+
+        // Mouse interaction
+        const mouse = {
+            x: 0,
+            y: 0,
+            target: { x: 0, y: 0 }
+        };
+
+        document.addEventListener('mousemove', (event) => {
+            mouse.target.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.target.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Animation
+        const clock = new THREE.Clock();
+
+        function animate() {
+            const elapsedTime = clock.getElapsedTime();
+
+            mouse.x += (mouse.target.x - mouse.x) * 0.05;
+            mouse.y += (mouse.target.y - mouse.y) * 0.05;
+
+            waveMaterial.uniforms.uTime.value = elapsedTime;
+            waveMaterial.uniforms.uMouse.value.set(mouse.x * 0.5 + 0.5, mouse.y * 0.5 + 0.5);
+
+            waves.rotation.z = elapsedTime * 0.05;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+
+        // TV Show Search Functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+
+            if (query.length < 3) {
+                searchResults.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                searchTVShows(query);
+            }, 500);
+        });
+
+        async function searchTVShows(query) {
+            try {
+                const response = await fetch(`/admin/api/tvshows/search?q=${encodeURIComponent(query)}`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to search TV shows');
+                }
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error searching TV shows:', error);
+                searchResults.innerHTML = `<p class="text-red-500">${error.message || 'Error searching for TV shows. Please try again.'}</p>`;
+            }
+        }
+
+        function displayResults(shows) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = shows.map(show => `
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg transform transition-all duration-300 hover:scale-105 cursor-pointer" 
+                     onclick="displayTVShowDetails(${show.id})">
+                    <img src="${show.posterPath}" alt="${show.name}" class="w-full h-64 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-white mb-2">${show.name}</h3>
+                        <p class="text-gray-400 mb-4">${show.overview}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-red-500 font-medium">${show.ratings}/10</span>
+                            <span class="text-gray-400">${show.firstAirDate}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Function to display TV show details
+        async function displayTVShowDetails(showId) {
+            try {
+                const response = await fetch(`/admin/api/tvshows/${showId}/details`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch TV show details');
+                }
+                const show = await response.json();
+                
+                // Show details section
+                document.getElementById('tvShowDetails').classList.remove('hidden');
+                
+                // Update TV show details
+                document.getElementById('tvShowPoster').src = show.posterPath;
+                document.getElementById('tvShowTitle').textContent = show.name;
+                document.getElementById('tvShowFirstAirDate').textContent = show.firstAirDate;
+                document.getElementById('tvShowSeasons').textContent = `${show.numberOfSeasons} Seasons`;
+                document.getElementById('tvShowRating').textContent = `${show.ratings}/10`;
+                document.getElementById('tvShowOverview').textContent = show.overview;
+                
+                // Update genres
+                const genresContainer = document.getElementById('tvShowGenres');
+                genresContainer.innerHTML = show.genres.map(genre => 
+                    `<span class="px-3 py-1 bg-gray-800 text-white rounded-full">${genre}</span>`
+                ).join('');
+                
+                // Update cast
+                const castContainer = document.getElementById('tvShowCast');
+                castContainer.innerHTML = show.cast.slice(0, 5).map(actor => `
+                    <div class="flex flex-col items-center">
+                        <img src="${actor.profilePath}" alt="${actor.name}" class="w-16 h-16 rounded-full object-cover">
+                        <span class="text-white text-sm mt-2">${actor.name}</span>
+                        <span class="text-gray-400 text-xs">${actor.character}</span>
+                    </div>
+                `).join('');
+                
+                // Update production companies
+                const companiesContainer = document.getElementById('tvShowCompanies');
+                companiesContainer.innerHTML = show.productionCompanies.map(company => `
+                    <div class="flex flex-col items-center">
+                        <img src="${company.logoPath}" alt="${company.name}" class="h-8 object-contain">
+                        <span class="text-white text-sm mt-2">${company.name}</span>
+                    </div>
+                `).join('');
+                
+                // Update add to library button
+                document.getElementById('addToLibrary').onclick = () => addTVShow(showId);
+                document.getElementById('addToLibrarySimple').onclick = () => addTVShowWithoutVideo(showId);
+                
+                // Store the show ID as a data attribute
+                document.getElementById('tvShowDetails').dataset.showId = showId;
+            } catch (error) {
+                console.error('Error fetching TV show details:', error);
+                alert(error.message || 'Error fetching TV show details. Please try again.');
+            }
+        }
+
+        async function addTVShow(showId) {
+            // Display loading state in the button
+            const addButton = document.getElementById('addToLibrary');
+            const originalButtonText = addButton.textContent;
+            addButton.textContent = 'Processing...';
+            addButton.disabled = true;
+            
+            try {
+                // Check if user is authenticated and admin
+                const authResponse = await fetch('/admin/auth-check');
+                const authData = await authResponse.json();
+                if (!authData.authenticated || !authData.isAdmin) {
+                    throw new Error('Authentication required. Please log in as an admin.');
+                }
+                
+                const isFree = document.getElementById('isFreeToggle').checked;
+                const videoFile = document.getElementById('tvShowVideo').files[0];
+                const fileSizeError = document.getElementById('fileSizeError');
+                
+                // Validate file size if file is selected
+                if (videoFile && videoFile.size > 2 * 1024 * 1024 * 1024) {
+                    fileSizeError.classList.remove('hidden');
+                    throw new Error('File size exceeds maximum limit of 2GB');
+                } else {
+                    fileSizeError.classList.add('hidden');
+                }
+                
+                // Generate a session ID for tracking this upload
+                const sessionId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+                
+                // Show progress container and initialize
+                if (videoFile) {
+                    const progressContainer = document.getElementById('uploadProgressContainer');
+                    progressContainer.classList.remove('hidden');
+                    
+                    const initialProgress = {
+                        percent: 0,
+                        message: 'Preparing upload...',
+                        fileName: videoFile.name,
+                        uploaded: 0,
+                        total: videoFile.size
+                    };
+                    updateProgressUI(initialProgress);
+                    
+                    // Start tracking progress
+                    trackUploadProgress(sessionId);
+                }
+                
+                // Create FormData to handle file upload
+                const formData = new FormData();
+                formData.append('showId', showId);
+                formData.append('isFree', isFree);
+                formData.append('sessionId', sessionId);
+                if (videoFile) {
+                    formData.append('video', videoFile);
+                    
+                    const response = await fetch('/admin/api/tvshows/add', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || errorData.details || 'Failed to add TV show');
+                    }
+                    
+                    const data = await response.json();
+                    alert('TV Show added successfully!');
+                } else {
+                    // If no video file, use JSON request
+                    const response = await fetch('/admin/api/tvshows/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            showId,
+                            isFree,
+                            sessionId
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || errorData.details || 'Failed to add TV show');
+                    }
+                    
+                    const data = await response.json();
+                    alert('TV Show added successfully (without video)!');
+                }
+                
+                // Clear form and redirect
+                window.location.href = '/admin/dashboard';
+            } catch (error) {
+                console.error('Error adding TV show:', error);
+                
+                // Update progress UI to show error if applicable
+                if (document.getElementById('uploadProgressContainer').classList.contains('hidden') === false) {
+                    updateProgressUI({
+                        percent: 0,
+                        message: `Error: ${error.message}`,
+                        error: true
+                    });
+                }
+                
+                alert(error.message || 'Error adding TV show. Please try again.');
+            } finally {
+                // Reset button state
+                addButton.textContent = originalButtonText;
+                addButton.disabled = false;
+            }
+        }
+
+        // Add without video handler
+        function addTVShowWithoutVideo(showId) {
+            const button = document.getElementById('addToLibrarySimple');
+            button.textContent = 'Processing...';
+            button.disabled = true;
+            
+            const isFree = document.getElementById('isFreeToggle').checked;
+            
+            fetch('/admin/api/tvshows/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    showId,
+                    isFree
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('TV Show added successfully (without video)!');
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    throw new Error(data.error || 'Failed to add TV show');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'Error adding TV show. Please try again.');
+            })
+            .finally(() => {
+                button.textContent = 'Add Without Video';
+                button.disabled = false;
+            });
+        }
+
+        // Progress tracking functions
+        let progressInterval = null;
+        let uploadSessionId = null;
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function updateProgressUI(progressData) {
+            const progressContainer = document.getElementById('uploadProgressContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const percentEl = document.getElementById('uploadPercent');
+            const messageEl = document.getElementById('uploadStatusMessage');
+            const fileNameEl = document.getElementById('uploadFileName');
+            const uploadedEl = document.getElementById('uploadedSize');
+            const totalEl = document.getElementById('totalSize');
+            
+            // Always show progress container when this function is called
+            progressContainer.classList.remove('hidden');
+            
+            // Update progress bar
+            progressBar.style.width = `${progressData.percent}%`;
+            percentEl.textContent = `${progressData.percent}%`;
+            messageEl.textContent = progressData.message || 'Uploading...';
+            
+            // Update file info if available
+            if (progressData.fileName) {
+                fileNameEl.textContent = progressData.fileName;
+            }
+            
+            // Update size info if available
+            if (progressData.uploaded !== undefined && progressData.total !== undefined) {
+                uploadedEl.textContent = formatFileSize(progressData.uploaded);
+                totalEl.textContent = formatFileSize(progressData.total);
+            }
+            
+            // Handle error state
+            if (progressData.error) {
+                progressBar.classList.remove('bg-red-600');
+                progressBar.classList.add('bg-red-900');
+                messageEl.classList.add('text-red-500');
+            } else {
+                progressBar.classList.add('bg-red-600');
+                progressBar.classList.remove('bg-red-900');
+                messageEl.classList.remove('text-red-500');
+            }
+            
+            // Handle completion
+            if (progressData.complete) {
+                stopProgressTracking();
+                
+                // Show success message with animation
+                progressBar.classList.add('bg-green-500');
+                progressBar.classList.remove('bg-red-600');
+                
+                // Auto-hide progress after 5 seconds on success
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 5000);
+            }
+        }
+        
+        function trackUploadProgress(sessionId) {
+            uploadSessionId = sessionId;
+            
+            // Clear any existing interval
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            // Set up polling for progress updates
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/admin/api/upload-progress/${sessionId}`);
+                    const progressData = await response.json();
+                    
+                    // Update UI with progress data
+                    updateProgressUI(progressData);
+                    
+                    // If upload is complete or errored, stop tracking
+                    if (progressData.complete || progressData.error) {
+                        stopProgressTracking();
+                    }
+                } catch (error) {
+                    console.error('Error fetching upload progress:', error);
+                }
+            }, 500); // Check every 500ms
+        }
+        
+        function stopProgressTracking() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+
+        // Add fetch latest functionality
+        document.getElementById('fetchLatest').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/admin/api/tvshows/fetch-latest');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch latest TV shows');
+                }
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error fetching latest TV shows:', error);
+                alert(error.message || 'Error fetching latest TV shows. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html> 

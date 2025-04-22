@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMDB API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #141414;
+            color: white;
+        }
+        h1, h2 {
+            color: #E50914;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #E50914;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #B2070F;
+        }
+        pre {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: #E50914;
+            font-weight: bold;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .movie-card {
+            background-color: #333;
+            border-radius: 5px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        .movie-card:hover {
+            transform: scale(1.05);
+        }
+        .movie-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .movie-info {
+            padding: 10px;
+        }
+        .movie-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .movie-rating {
+            color: #FFC107;
+        }
+    </style>
+</head>
+<body>
+    <h1>TMDB API Test</h1>
+    
+    <div class="controls">
+        <button id="test-trending">Test Trending Movies API</button>
+        <button id="test-direct">Test Direct TMDB API</button>
+        <button id="clear-results">Clear Results</button>
+    </div>
+    
+    <h2>Results:</h2>
+    <div id="status"></div>
+    <pre id="results"></pre>
+    
+    <h2>Movie Grid:</h2>
+    <div id="movie-grid" class="movie-grid"></div>
+    
+    <script>
+        // Elements
+        const resultsElement = document.getElementById('results');
+        const statusElement = document.getElementById('status');
+        const movieGridElement = document.getElementById('movie-grid');
+        
+        // Test our backend API
+        document.getElementById('test-trending').addEventListener('click', async () => {
+            clearResults();
+            setStatus('Testing our backend API...', 'normal');
+            
+            try {
+                console.log('Fetching trending movies from backend...');
+                const startTime = new Date();
+                
+                const response = await fetch('/movies/trending');
+                
+                const endTime = new Date();
+                const responseTime = endTime - startTime;
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                setStatus(`Success! Fetched ${data.length} movies in ${responseTime}ms`, 'success');
+                
+                // Display the results
+                resultsElement.textContent = JSON.stringify(data, null, 2);
+                
+                // Create movie grid
+                renderMovieGrid(data);
+                
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        });
+        
+        // Test direct TMDB API
+        document.getElementById('test-direct').addEventListener('click', async () => {
+            clearResults();
+            setStatus('Testing direct TMDB API...', 'normal');
+            
+            try {
+                console.log('Fetching trending movies directly from TMDB...');
+                const startTime = new Date();
+                
+                const apiKey = '6ec9180bfc843aba1677d9ff1b531116';
+                const response = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`);
+                
+                const endTime = new Date();
+                const responseTime = endTime - startTime;
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                setStatus(`Success! Fetched ${data.results.length} movies in ${responseTime}ms`, 'success');
+                
+                // Display the results
+                resultsElement.textContent = JSON.stringify(data, null, 2);
+                
+                // Transform data to match our API format
+                const transformedData = data.results.map(movie => ({
+                    id: movie.id,
+                    title: movie.title || 'Unknown Title',
+                    overview: movie.overview || 'No overview available',
+                    posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+                    backdropPath: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
+                    releaseDate: movie.release_date || 'Unknown',
+                    ratings: movie.vote_average || 0
+                }));
+                
+                // Create movie grid
+                renderMovieGrid(transformedData);
+                
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        });
+        
+        // Clear results
+        document.getElementById('clear-results').addEventListener('click', () => {
+            clearResults();
+        });
+        
+        // Helper functions
+        function clearResults() {
+            resultsElement.textContent = '';
+            statusElement.textContent = '';
+            statusElement.className = '';
+            movieGridElement.innerHTML = '';
+        }
+        
+        function setStatus(message, type) {
+            statusElement.textContent = message;
+            statusElement.className = type;
+        }
+        
+        function renderMovieGrid(movies) {
+            movieGridElement.innerHTML = '';
+            
+            movies.forEach(movie => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                
+                const img = document.createElement('img');
+                img.src = movie.posterPath || 'https://via.placeholder.com/300x450?text=No+Image';
+                img.alt = movie.title;
+                
+                const info = document.createElement('div');
+                info.className = 'movie-info';
+                
+                const title = document.createElement('div');
+                title.className = 'movie-title';
+                title.textContent = movie.title;
+                
+                const rating = document.createElement('div');
+                rating.className = 'movie-rating';
+                rating.textContent = `★ ${movie.ratings.toFixed(1)}`;
+                
+                info.appendChild(title);
+                info.appendChild(rating);
+                
+                card.appendChild(img);
+                card.appendChild(info);
+                
+                movieGridElement.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html> 

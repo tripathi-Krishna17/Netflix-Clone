@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My List - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+        }
+
+        .movie-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .movie-info {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .movie-card:hover .movie-info {
+            opacity: 1;
+        }
+
+        .genre-tag {
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        .genre-tag:hover {
+            background-color: var(--netflix-red);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="bg-black bg-opacity-90 fixed w-full z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-red-600 text-2xl font-bold">NETFLIX</a>
+            <div class="flex items-center space-x-6">
+                <a href="/movies" class="text-white font-medium">Movies</a>
+                <a href="/tvshows" class="text-gray-400 hover:text-white transition-colors">TV Shows</a>
+                <a href="/movies/watchlist" class="text-white font-medium">
+                    <i class="fas fa-bookmark mr-1"></i> My List
+                </a>
+                <div class="relative group">
+                    <button class="flex items-center text-gray-400 hover:text-white transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{user.username}}&background=random" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+                        <span>{{user.username}}</span>
+                        <i class="fas fa-caret-down ml-2"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block">
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Settings</a>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative h-[40vh] bg-gradient-to-r from-black to-transparent">
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+        <div class="container mx-auto px-4 h-full flex items-center">
+            <div class="max-w-2xl">
+                <h1 class="text-5xl font-bold mb-4">My List</h1>
+                <p class="text-xl">Your saved movies and TV shows.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- Movies Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {{#each watchlist}}
+            <div class="movie-card relative rounded-lg overflow-hidden">
+                <a href="/movies/{{this._id}}">
+                    <img src="{{this.posterPath}}" alt="{{this.title}}" class="w-full h-auto">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent movie-info">
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <h3 class="text-xl font-bold mb-2">{{this.title}}</h3>
+                            <div class="flex items-center mb-2">
+                                <span class="text-yellow-500 mr-2">
+                                    <i class="fas fa-star"></i>
+                                </span>
+                                <span>{{this.ratings}}/10</span>
+                                <span class="mx-2">•</span>
+                                <span>{{this.releaseDate}}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                {{#each this.genres}}
+                                <span class="genre-tag text-xs px-2 py-1 rounded-full">{{this}}</span>
+                                {{/each}}
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="/movies/{{this._id}}/watch" class="bg-red-600 text-white px-4 py-1 rounded-md hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-play mr-1"></i> Play
+                                </a>
+                                <button class="watchlist-btn bg-gray-800 text-white px-4 py-1 rounded-md hover:bg-gray-700 transition-colors" 
+                                        data-id="{{this._id}}" 
+                                        data-in-watchlist="true">
+                                    <i class="fas fa-bookmark mr-1"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {{/each}}
+        </div>
+
+        <!-- Empty State -->
+        {{#if (eq watchlist.length 0)}}
+        <div class="text-center py-12">
+            <i class="fas fa-bookmark text-6xl text-gray-600 mb-4"></i>
+            <h2 class="text-2xl font-bold mb-2">Your list is empty</h2>
+            <p class="text-gray-400 mb-6">Add movies and TV shows to your list to watch them later.</p>
+            <a href="/movies" class="bg-red-600 text-white px-6 py-2 rounded-md font-medium hover:bg-red-700 transition-colors">
+                Browse Movies
+            </a>
+        </div>
+        {{/if}}
+    </div>
+
+    <script>
+        // Watchlist functionality
+        document.querySelectorAll('.watchlist-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const movieId = button.dataset.id;
+                
+                try {
+                    const response = await fetch(`/movies/${movieId}/watchlist`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to update watchlist');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Remove the movie card from the grid
+                    const movieCard = button.closest('.movie-card');
+                    movieCard.remove();
+                    
+                    // Show notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50';
+                    notification.textContent = data.message;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                    
+                    // Check if the watchlist is empty
+                    const remainingMovies = document.querySelectorAll('.movie-card');
+                    if (remainingMovies.length === 0) {
+                        location.reload(); // Reload to show empty state
+                    }
+                    
+                } catch (error) {
+                    console.error('Error updating watchlist:', error);
+                    
+                    // Show error notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg z-50';
+                    notification.textContent = 'Error updating watchlist';
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

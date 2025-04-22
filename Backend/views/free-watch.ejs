@@ -1,0 +1,331 @@
+<%- include('partials/header') %>
+
+<div class="watch-container">
+  <!-- Three.js background canvas -->
+  <canvas id="bg-canvas"></canvas>
+  
+  <!-- Video player container -->
+  <div class="player-wrapper">
+    <div class="player-header">
+      <a href="/browse" class="back-button">
+        <i class="fas fa-arrow-left"></i> Back to Browse
+      </a>
+      <div class="player-title">
+        <h1><%= video.title %></h1>
+        <p class="video-meta">
+          <span class="rating"><%= video.maturityRating %></span>
+          <span class="year"><%= video.releaseYear %></span>
+          <span class="duration"><%= video.duration %></span>
+        </p>
+      </div>
+    </div>
+    
+    <video id="player" playsinline controls data-poster="<%= video.thumbnailUrl %>">
+      <source src="<%= video.videoUrl %>" type="video/mp4" />
+      <!-- Fallback for browsers that don't support the video element -->
+      <p>Your browser doesn't support HTML5 video. Here is a <a href="<%= video.videoUrl %>">link to the video</a> instead.</p>
+    </video>
+    
+    <div class="player-info">
+      <div class="video-details">
+        <div class="synopsis">
+          <h3>Synopsis</h3>
+          <p><%= video.description %></p>
+        </div>
+        <div class="meta-info">
+          <div class="genre">
+            <span class="label">Genre:</span>
+            <span class="value"><%= video.genre.join(', ') %></span>
+          </div>
+          <div class="cast">
+            <span class="label">Starring:</span>
+            <span class="value"><%= video.cast.join(', ') %></span>
+          </div>
+          <div class="director">
+            <span class="label">Director:</span>
+            <span class="value"><%= video.director %></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="upgrade-section">
+        <p>This is a preview. Unlock our full library with:</p>
+        <button id="upgrade-button" class="btn btn-upgrade">Upgrade to Premium</button>
+        <p class="upgrade-benefits">Get unlimited access to all content, HD quality, and no ads</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Preview end notification -->
+  <div id="preview-end-modal" class="preview-end-modal">
+    <div class="modal-content">
+      <h2>Preview Ended</h2>
+      <p>To continue watching and unlock our full library:</p>
+      <button class="btn btn-upgrade">Upgrade to Premium</button>
+      <a href="/browse" class="browse-more">Browse more free content</a>
+    </div>
+  </div>
+</div>
+
+<!-- Load Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Load our custom scripts -->
+<script src="/js/three-background.js"></script>
+<script src="/js/plyr.min.js"></script>
+<script src="/js/video-player.js"></script>
+
+<script>
+  // Initialize the player with data from the server
+  document.addEventListener('DOMContentLoaded', () => {
+    initializePlayer({
+      videoId: '<%= video.id %>',
+      previewDuration: <%= video.previewDuration || 180 %>, // Default 3 minutes preview
+      isPreview: true
+    });
+    
+    // Preview end modal logic
+    const previewEndModal = document.getElementById('preview-end-modal');
+    const player = document.getElementById('player');
+    
+    player.addEventListener('timeupdate', () => {
+      if (player.currentTime >= <%= video.previewDuration || 180 %>) {
+        player.pause();
+        previewEndModal.classList.add('visible');
+      }
+    });
+    
+    // Upgrade button logic
+    const upgradeButtons = document.querySelectorAll('.btn-upgrade');
+    upgradeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        window.location.href = '/subscription';
+      });
+    });
+  });
+</script>
+
+<style>
+  .watch-container {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background-color: #000;
+    color: #fff;
+    overflow: hidden;
+  }
+  
+  #bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    transition: opacity 0.5s ease;
+  }
+  
+  .player-wrapper {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .player-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .back-button {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-right: 20px;
+    transition: color 0.3s ease;
+  }
+  
+  .back-button:hover {
+    color: #e50914;
+  }
+  
+  .player-title h1 {
+    font-size: 1.8rem;
+    margin: 0 0 5px 0;
+  }
+  
+  .video-meta {
+    font-size: 0.9rem;
+    color: #aaa;
+  }
+  
+  .video-meta span {
+    margin-right: 15px;
+  }
+  
+  .rating {
+    border: 1px solid #555;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  
+  #player {
+    width: 100%;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+  
+  .player-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(20, 20, 20, 0.8);
+    border-radius: 5px;
+  }
+  
+  .video-details {
+    flex: 2;
+    padding-right: 30px;
+  }
+  
+  .synopsis h3 {
+    font-size: 1.3rem;
+    margin-top: 0;
+  }
+  
+  .meta-info {
+    margin-top: 20px;
+    font-size: 0.9rem;
+  }
+  
+  .meta-info div {
+    margin-bottom: 10px;
+  }
+  
+  .label {
+    color: #aaa;
+    margin-right: 5px;
+  }
+  
+  .value {
+    color: #fff;
+  }
+  
+  .upgrade-section {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+    background: rgba(229, 9, 20, 0.1);
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .btn-upgrade {
+    background-color: #e50914;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 15px 0;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  .btn-upgrade:hover {
+    background-color: #f40612;
+    transform: scale(1.05);
+  }
+  
+  .upgrade-benefits {
+    font-size: 0.85rem;
+    color: #aaa;
+  }
+  
+  .preview-end-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  
+  .preview-end-modal.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .modal-content {
+    background: #141414;
+    border-radius: 5px;
+    padding: 30px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  }
+  
+  .modal-content h2 {
+    color: #e50914;
+    margin-top: 0;
+  }
+  
+  .browse-more {
+    display: block;
+    margin-top: 15px;
+    color: #aaa;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .browse-more:hover {
+    color: #fff;
+  }
+  
+  .animate-pulse {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 15px rgba(229, 9, 20, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(229, 9, 20, 0);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .player-info {
+      flex-direction: column;
+    }
+    
+    .video-details {
+      padding-right: 0;
+      margin-bottom: 20px;
+    }
+    
+    .player-title h1 {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+
+<%- include('partials/footer') %> 

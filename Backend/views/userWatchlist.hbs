@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My List - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+        }
+
+        .navbar {
+            background-color: var(--netflix-black);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+        }
+
+        .movie-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .movie-card:hover .movie-info {
+            opacity: 1;
+        }
+
+        .movie-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+            padding: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .premium-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #E50914;
+            color: white;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            border-radius: 0.2rem;
+            z-index: 2;
+        }
+
+        .watch-btn {
+            background-color: var(--netflix-red);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .watch-btn:hover {
+            background-color: #c00811;
+        }
+
+        .info-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .info-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .remove-btn {
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50%;
+            font-size: 1rem;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 3;
+        }
+
+        .movie-card:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .remove-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .empty-list {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 50vh;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navbar -->
+    <nav class="navbar px-4 py-3">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-6">
+                <a href="/dashboard" class="text-red-600">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/200px-Netflix_2015_logo.svg.png" alt="Netflix Logo" class="h-7">
+                </a>
+                <ul class="hidden md:flex space-x-6">
+                    <li><a href="/dashboard" class="text-white hover:text-gray-300">Home</a></li>
+                    <li><a href="/movies" class="text-white hover:text-gray-300">Movies</a></li>
+                    <li><a href="/mylist" class="text-white font-medium hover:text-gray-300">My List</a></li>
+                </ul>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" placeholder="Search..." class="bg-black border border-gray-700 rounded px-3 py-1 text-sm text-white focus:outline-none focus:border-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 absolute right-2 top-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <div class="dropdown relative group">
+                    <button class="flex items-center space-x-1">
+                        <img src="https://occ-0-395-778.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABTYctxxbe-UkKEdlMxXm4FVGD6DqTHkQ0TQ5CQJ9jbOMnG0CYxYcSICcTUQz8DrB7CpKUGpqJVMtEqksLlvSJx2ac3Ak.png?r=a41" alt="Profile" class="w-8 h-8 rounded-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-black border border-gray-800 rounded shadow-lg z-50">
+                        <a href="/profile" class="block px-4 py-2 text-white hover:bg-gray-800">Profile</a>
+                        <a href="/account" class="block px-4 py-2 text-white hover:bg-gray-800">Account</a>
+                        {{#if user.isPremium}}
+                            <div class="px-4 py-2 text-sm text-red-600 font-semibold">Premium Member</div>
+                        {{else}}
+                            <a href="/upgrade" class="block px-4 py-2 text-red-600 hover:bg-gray-800">Upgrade to Premium</a>
+                        {{/if}}
+                        <div class="border-t border-gray-800 my-1"></div>
+                        <a href="/logout" class="block px-4 py-2 text-white hover:bg-gray-800">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto pt-24 pb-16 px-4">
+        <h1 class="text-3xl font-bold mb-8">My List</h1>
+
+        {{#if error}}
+            <div class="bg-red-500/20 border border-red-500/50 text-red-400 p-4 rounded-lg mb-6">
+                {{error}}
+            </div>
+        {{/if}}
+
+        {{#if watchlist.length}}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {{#each watchlist}}
+                    <div class="movie-card aspect-[2/3]">
+                        <a href="/movies/{{this._id}}">
+                            <img src="{{this.posterPath}}" alt="{{this.title}}" class="rounded-md w-full h-full object-cover">
+                            {{#unless this.isFree}}
+                                <div class="premium-badge">PREMIUM</div>
+                            {{/unless}}
+                            <div class="movie-info">
+                                <h3 class="text-sm font-semibold">{{this.title}}</h3>
+                                <div class="flex items-center mt-1 mb-2">
+                                    <span class="text-xs text-green-500 mr-2">{{this.ratings}}%</span>
+                                    <span class="text-xs">{{formatDate this.releaseDate}}</span>
+                                </div>
+                                <div class="flex space-x-2 mt-2">
+                                    <a href="/movies/{{this._id}}/watch" class="watch-btn flex-1 text-center text-sm py-1">
+                                        Play
+                                    </a>
+                                    <a href="/movies/{{this._id}}" class="info-btn flex-1 text-center text-sm py-1">
+                                        Info
+                                    </a>
+                                </div>
+                            </div>
+                        </a>
+                        <button class="remove-btn" onclick="removeFromWatchlist('{{this._id}}')">×</button>
+                    </div>
+                {{/each}}
+            </div>
+        {{else}}
+            <div class="empty-list">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h2 class="text-2xl font-bold text-gray-400 mb-2">Your list is empty</h2>
+                <p class="text-gray-500 mb-6 max-w-md">Add movies and TV shows to your list to keep track of what you want to watch.</p>
+                <a href="/movies" class="bg-white text-black font-bold py-2 px-6 rounded hover:bg-gray-300 transition">Browse Movies</a>
+            </div>
+        {{/if}}
+    </main>
+
+    <script>
+        // Function to remove item from watchlist
+        function removeFromWatchlist(movieId) {
+            if (confirm('Remove this title from your list?')) {
+                fetch(`/movies/${movieId}/watchlist`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.inWatchlist) {
+                        // Refresh the page to update the list
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

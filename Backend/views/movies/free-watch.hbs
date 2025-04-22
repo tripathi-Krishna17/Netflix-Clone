@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{movie.title}} - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.6.8/plyr.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+
+        .plyr {
+            --plyr-color-main: var(--netflix-red);
+            --plyr-video-background: var(--netflix-black);
+            height: 100%;
+        }
+
+        .movie-info {
+            backdrop-filter: blur(10px);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.8) 100%);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .genre-tag {
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        .genre-tag:hover {
+            background-color: var(--netflix-red);
+        }
+        
+        .premium-banner {
+            background: linear-gradient(90deg, #E50914 0%, #FF5F6D 100%);
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5);
+            transform: rotate(-2deg);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5); }
+            50% { box-shadow: 0 4px 30px rgba(229, 9, 20, 0.8); }
+            100% { box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5); }
+        }
+        
+        .action-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Preview end modal styles */
+        .preview-end-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .preview-end-modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: #141414;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Three.js Background Canvas -->
+    <canvas id="background-canvas"></canvas>
+
+    <!-- Navbar -->
+    <nav class="bg-black bg-opacity-90 fixed w-full z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-red-600 text-2xl font-bold">NETFLIX</a>
+            <div class="flex items-center space-x-6">
+                <a href="/movies" class="text-white font-medium">Movies</a>
+                <a href="/tvshows" class="text-gray-400 hover:text-white transition-colors">TV Shows</a>
+                <a href="/movies/watchlist" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bookmark mr-1"></i> My List
+                </a>
+                <div class="relative group">
+                    <button class="flex items-center text-gray-400 hover:text-white transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{user.username}}&background=random" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+                        <span>{{user.username}}</span>
+                        <i class="fas fa-caret-down ml-2"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block">
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Settings</a>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 pt-24 pb-16">
+        <!-- Video Player Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Video Player -->
+            <div class="lg:col-span-2">
+                <div class="video-container">
+                    {{#if movie.videoUrl}}
+                        {{#if (isYouTubeUrl movie.videoUrl)}}
+                            <iframe id="player" 
+                                    src="{{movie.videoUrl}}?enablejsapi=1" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen
+                                    class="absolute inset-0 w-full h-full">
+                            </iframe>
+                        {{else}}
+                            <!-- Enhanced Video Player for SFTP and local videos with Plyr.js -->
+                            <video id="player" controls crossorigin="anonymous" class="absolute inset-0 w-full h-full plyr__video-embed">
+                                <source src="{{movie.videoUrl}}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            
+                            <!-- Video Debug Information -->
+                            <div class="absolute top-0 right-0 bg-black bg-opacity-75 text-white p-2 text-xs hidden" id="videoDebugInfo">
+                                <p>Source: {{#if (isRemoteUrl movie.videoUrl)}}SFTP Remote{{else}}Local{{/if}}</p>
+                                <p>URL: <span class="break-all">{{movie.videoUrl}}</span></p>
+                            </div>
+                            
+                            <!-- Toggle Debug Info Button -->
+                            <button class="absolute top-2 right-2 bg-black bg-opacity-75 text-white p-2 text-xs z-20" onclick="toggleDebugInfo()">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            
+                            <!-- If video fails to load, show direct link to try -->
+                            <div id="videoFallback" class="absolute bottom-4 left-0 right-0 mx-auto w-max bg-black bg-opacity-75 text-white p-2 rounded-lg text-sm hidden">
+                                <p>Having trouble playing the video?</p>
+                                <div class="flex justify-center mt-2">
+                                    <a href="{{movie.videoUrl}}" target="_blank" class="bg-red-600 px-4 py-1 rounded-md hover:bg-red-700 transition-colors">
+                                        Try Direct Link
+                                    </a>
+                                </div>
+                            </div>
+                        {{/if}}
+                    {{else}}
+                        <div class="absolute inset-0 flex items-center justify-center bg-gray-900">
+                            <div class="text-center p-8">
+                                <i class="fas fa-film text-6xl text-gray-600 mb-4"></i>
+                                <h2 class="text-2xl font-bold mb-2">Video Not Available</h2>
+                                <p class="text-gray-400 mb-4">The video file has not been uploaded yet.</p>
+                                <a href="/movies" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                    Back to Movies
+                                </a>
+                            </div>
+                        </div>
+                    {{/if}}
+                </div>
+                
+                <!-- Premium Upgrade Banner -->
+                {{#unless user.isPremium}}
+                <div class="premium-banner mt-6 px-6 py-4 rounded-lg text-white text-center relative">
+                    <h3 class="text-xl font-bold mb-2">Enjoying Free Content?</h3>
+                    <p class="mb-3">Upgrade to Premium for unlimited access to our entire library!</p>
+                    <a href="/pricing" id="upgrade-button" class="inline-block bg-white text-red-600 font-bold px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        Upgrade Now
+                    </a>
+                </div>
+                {{/unless}}
+            </div>
+            
+            <!-- Movie Info -->
+            <div class="movie-info p-6 rounded-lg">
+                <h1 class="text-3xl font-bold mb-4">{{movie.title}}</h1>
+                <div class="flex items-center mb-4">
+                    <span class="text-yellow-500 mr-2">
+                        <i class="fas fa-star"></i>
+                    </span>
+                    <span class="mr-4">{{movie.ratings}}/10</span>
+                    <span class="mr-4">{{movie.releaseDate}}</span>
+                    <span class="mr-4">{{movie.runtime}} min</span>
+                    {{#if movie.isFree}}
+                    <span class="bg-green-500 text-white px-2 py-1 rounded text-sm">Free</span>
+                    {{/if}}
+                </div>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    {{#each movie.genres}}
+                    <span class="genre-tag text-sm px-3 py-1 rounded-full">{{this}}</span>
+                    {{/each}}
+                </div>
+                <p class="text-lg mb-6">{{movie.overview}}</p>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <button class="watchlist-btn action-btn flex items-center px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors" 
+                            data-id="{{movie._id}}" 
+                            data-in-watchlist="{{#if (inWatchlist movie._id user.watchlist)}}true{{else}}false{{/if}}">
+                        <i class="fas {{#if (inWatchlist movie._id user.watchlist)}}fa-bookmark{{else}}fa-bookmark-plus{{/if}} mr-2"></i>
+                        {{#if (inWatchlist movie._id user.watchlist)}}In My List{{else}}Add to My List{{/if}}
+                    </button>
+                    
+                    <button class="action-btn flex items-center px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors" 
+                            onclick="shareMovie()">
+                        <i class="fas fa-share-alt mr-2"></i>
+                        Share
+                    </button>
+                </div>
+                
+                <!-- Cast Information if available -->
+                {{#if movie.cast.length}}
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold mb-3">Cast</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        {{#each movie.cast}}
+                        <div class="flex items-center">
+                            {{#if this.profilePath}}
+                            <img src="{{this.profilePath}}" alt="{{this.name}}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            {{else}}
+                            <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                                <i class="fas fa-user text-gray-500"></i>
+                            </div>
+                            {{/if}}
+                            <div>
+                                <p class="font-medium">{{this.name}}</p>
+                                <p class="text-xs text-gray-400">{{this.character}}</p>
+                            </div>
+                        </div>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview end modal -->
+    <div id="preview-end-modal" class="preview-end-modal">
+        <div class="modal-content">
+            <h2 class="text-red-600 text-2xl font-bold mb-4">Preview Ended</h2>
+            <p class="mb-6">To continue watching the full movie and explore our entire library:</p>
+            <a href="/pricing" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors inline-block">
+                Upgrade to Premium
+            </a>
+            <a href="/movies" class="block mt-4 text-gray-400 hover:text-white transition-colors">
+                Browse more free content
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.6.8/plyr.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="/js/smoke-texture-fallback.js"></script>
+    <script src="/js/three-background.js"></script>
+    <script src="/js/video-player.js"></script>
+    <script>
+        // YouTube-specific functionality
+        let ytPlayer;
+        let player;
+        
+        // Toggle debug info display
+        function toggleDebugInfo() {
+            const debugInfo = document.getElementById('videoDebugInfo');
+            debugInfo.classList.toggle('hidden');
+        }
+        
+        // Share movie functionality
+        function shareMovie() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '{{movie.title}}',
+                    text: 'Check out this movie: {{movie.title}}',
+                    url: window.location.href
+                })
+                .then(() => console.log('Shared successfully'))
+                .catch((error) => console.log('Error sharing:', error));
+            } else {
+                // Fallback
+                const tempInput = document.createElement('input');
+                document.body.appendChild(tempInput);
+                tempInput.value = window.location.href;
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                
+                alert('Link copied to clipboard!');
+            }
+        }
+        
+        // Check if the video is from YouTube
+        const isYouTubeUrl = (url) => {
+            return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+        };
+        
+        // Initialize the three.js background and handle video playback
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Get DOM elements
+            const videoElement = document.getElementById('player');
+            const previewEndModal = document.getElementById('preview-end-modal');
+            const videoFallback = document.getElementById('videoFallback');
+            
+            // Add preview time limit for free users (3 min preview)
+            const PREVIEW_DURATION = {{#if user.isPremium}}Infinity{{else}}180{{/if}}; // 3 minutes for free users
+            
+            // YouTube API handling
+            if (isYouTubeUrl('{{movie.videoUrl}}')) {
+                function onYouTubeIframeAPIReady() {
+                    ytPlayer = new YT.Player('player', {
+                        events: {
+                            'onReady': onPlayerReady,
+                            'onStateChange': onPlayerStateChange,
+                            'onError': onPlayerError
+                        }
+                    });
+                }
+                
+                async function onPlayerReady(event) {
+                    try {
+                        const response = await fetch('/movies/{{movie._id}}/progress');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.progress > 0) {
+                                // Set initial time
+                                event.target.seekTo(data.progress);
+                                console.log('Restored watch progress:', data.progress);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading watch progress:', error);
+                    }
+                }
+                
+                function onPlayerStateChange(event) {
+                    // Save progress when paused or ended
+                    if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                        const currentTime = ytPlayer.getCurrentTime();
+                        saveWatchProgress(currentTime);
+                    }
+                    
+                    // Check for preview limit
+                    if (!{{user.isPremium}} && !{{movie.isFree}} && 
+                        ytPlayer.getCurrentTime() >= PREVIEW_DURATION) {
+                        ytPlayer.pauseVideo();
+                        previewEndModal.classList.add('visible');
+                    }
+                }
+                
+                function onPlayerError(event) {
+                    console.error('YouTube player error:', event.data);
+                    if (videoFallback) {
+                        videoFallback.classList.remove('hidden');
+                    }
+                }
+            } else if (videoElement) {
+                // Initialize Plyr for regular video
+                player = new Plyr(videoElement, {
+                    controls: [
+                        'play-large', 'play', 'progress', 'current-time',
+                        'mute', 'volume', 'captions', 'settings', 'pip', 'fullscreen'
+                    ]
+                });
+                
+                // Load watch progress
+                try {
+                    const response = await fetch('/movies/{{movie._id}}/progress');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.progress > 0) {
+                            // Set initial time (after a slight delay to ensure video is loaded)
+                            setTimeout(() => {
+                                videoElement.currentTime = data.progress;
+                                console.log('Restored watch progress:', data.progress);
+                            }, 1000);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading watch progress:', error);
+                }
+                
+                // Video error handling
+                videoElement.addEventListener('error', function(e) {
+                    console.error('Video loading error:', e);
+                    if (videoFallback) {
+                        videoFallback.classList.remove('hidden');
+                    }
+                });
+                
+                // Save progress periodically
+                let lastSavedTime = 0;
+                const saveInterval = 5; // 5 seconds
+                
+                videoElement.addEventListener('timeupdate', () => {
+                    const currentTime = videoElement.currentTime;
+                    
+                    // Preview limit check
+                    if (!{{user.isPremium}} && !{{movie.isFree}} && 
+                        currentTime >= PREVIEW_DURATION) {
+                        videoElement.pause();
+                        previewEndModal.classList.add('visible');
+                    }
+                    
+                    // Save progress periodically
+                    if (currentTime - lastSavedTime >= saveInterval) {
+                        saveWatchProgress(currentTime);
+                        lastSavedTime = currentTime;
+                    }
+                });
+                
+                // Save progress when video is paused or ended
+                videoElement.addEventListener('pause', () => {
+                    saveWatchProgress(videoElement.currentTime);
+                });
+                
+                videoElement.addEventListener('ended', () => {
+                    saveWatchProgress(videoElement.currentTime);
+                });
+            }
+            
+            // Close modal when clicking outside
+            if (previewEndModal) {
+                previewEndModal.addEventListener('click', (e) => {
+                    if (e.target === previewEndModal) {
+                        previewEndModal.classList.remove('visible');
+                    }
+                });
+            }
+        });
+        
+        // Save watch progress function
+        async function saveWatchProgress(currentTime) {
+            try {
+                const response = await fetch(`/movies/{{movie._id}}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ progress: currentTime })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save progress');
+                }
+                
+                console.log(`Watch progress saved: ${currentTime.toFixed(2)} seconds`);
+            } catch (error) {
+                console.error('Error saving watch progress:', error);
+            }
+        }
+        
+        // Watchlist functionality
+        document.querySelectorAll('.watchlist-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const movieId = button.dataset.id;
+                const isInWatchlist = button.dataset.inWatchlist === 'true';
+                
+                try {
+                    const response = await fetch(`/movies/${movieId}/watchlist`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to update watchlist');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Update button state
+                    button.dataset.inWatchlist = data.inWatchlist;
+                    if (data.inWatchlist) {
+                        button.innerHTML = '<i class="fas fa-bookmark mr-2"></i> In My List';
+                    } else {
+                        button.innerHTML = '<i class="fas fa-bookmark-plus mr-2"></i> Add to My List';
+                    }
+                    
+                    // Show notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-5 right-5 bg-gray-900 border border-gray-700 text-white p-4 rounded-lg shadow-lg z-50';
+                    notification.innerText = data.message;
+                    document.body.appendChild(notification);
+                    
+                    // Remove notification after 3 seconds
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('Error updating watchlist:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

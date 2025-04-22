@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movies - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+        }
+
+        .movie-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .movie-info {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .movie-card:hover .movie-info {
+            opacity: 1;
+        }
+
+        .genre-tag {
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        .genre-tag:hover {
+            background-color: var(--netflix-red);
+        }
+
+        .pagination-btn {
+            transition: all 0.3s ease;
+        }
+
+        .pagination-btn:hover {
+            background-color: var(--netflix-red);
+        }
+
+        .search-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 0 2px var(--netflix-red);
+        }
+
+        /* Netflix-style hero section with video */
+        .hero-container {
+            position: relative;
+            height: 80vh;
+            overflow: hidden;
+        }
+
+        .hero-video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .hero-video-container iframe,
+        .hero-video-container video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            object-fit: cover;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.8) 0%,
+                rgba(0, 0, 0, 0.5) 40%,
+                rgba(0, 0, 0, 0.8) 100%
+            );
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 5rem;
+        }
+
+        .featured-badge {
+            background-color: var(--netflix-red);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.875rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .carousel-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .carousel-title {
+            margin-bottom: 1rem;
+            font-weight: 700;
+            font-size: 1.5rem;
+            padding-left: 0.5rem;
+        }
+
+        .carousel {
+            display: flex;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 0.5rem 0.25rem;
+            -ms-overflow-style: none;  /* Hide scrollbar in IE and Edge */
+            scrollbar-width: none;  /* Hide scrollbar in Firefox */
+        }
+
+        .carousel::-webkit-scrollbar {
+            display: none; /* Hide scrollbar in Chrome, Safari and Opera */
+        }
+
+        .carousel-item {
+            flex: 0 0 auto;
+            width: 250px;
+            margin-right: 0.75rem;
+        }
+
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .carousel-container:hover .carousel-nav {
+            opacity: 1;
+        }
+
+        .carousel-nav-left {
+            left: 1rem;
+        }
+
+        .carousel-nav-right {
+            right: 1rem;
+        }
+
+        .movie-title-bar {
+            padding: 0.5rem;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        }
+
+        /* Add to the style section - control visibility of hero content */
+        .hero-content.hidden-description .movie-description {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        .hero-content .movie-description {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="bg-black bg-opacity-90 fixed w-full z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-red-600 text-2xl font-bold">NETFLIX</a>
+            <div class="flex items-center space-x-6">
+                <a href="/movies" class="text-white font-medium">Movies</a>
+                <a href="/tvshows" class="text-gray-400 hover:text-white transition-colors">TV Shows</a>
+                <a href="/movies/watchlist" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bookmark mr-1"></i> My List
+                </a>
+                <div class="relative group">
+                    <button class="flex items-center text-gray-400 hover:text-white transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{user.username}}&background=random" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+                        <span>{{user.username}}</span>
+                        <i class="fas fa-caret-down ml-2"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block">
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Settings</a>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Featured Movie Trailer -->
+    <div class="hero-container">
+        <div class="hero-video-container" id="heroVideoContainer">
+            <!-- Video or iframe will be loaded here dynamically -->
+        </div>
+        <div class="hero-overlay"></div>
+        <div class="container mx-auto px-4">
+            <div class="hero-content" id="heroContent">
+                <div class="max-w-2xl movie-description">
+                    <span class="featured-badge">FEATURED</span>
+                    <h1 class="text-5xl font-bold mb-4" id="featuredTitle">Loading...</h1>
+                    <p class="text-xl mb-6" id="featuredOverview">Please wait while we load featured content...</p>
+                    <div class="flex space-x-4">
+                        <a href="#" id="featuredWatch" class="bg-white text-black px-6 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-play mr-2"></i> Play
+                        </a>
+                        <button id="featuredAddToList" class="bg-gray-800 text-white px-6 py-2 rounded-md font-medium hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i> My List
+                        </button>
+                        <button id="featuredMoreInfo" class="bg-gray-600 bg-opacity-70 text-white px-6 py-2 rounded-md font-medium hover:bg-opacity-90 transition-colors">
+                            <i class="fas fa-info-circle mr-2"></i> More Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-0 w-full h-20 bg-gradient-to-t from-[var(--netflix-black)] to-transparent z-10"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- Filters -->
+        <div class="bg-gray-900 rounded-lg p-4 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-4">
+                    <form action="/movies" method="GET" class="flex items-center">
+                        <input type="text" name="search" placeholder="Search movies..." 
+                            value="{{query.search}}" 
+                            class="search-input px-4 py-2 rounded-md text-white focus:outline-none">
+                        <button type="submit" class="ml-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative group">
+                        <button class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                            Genre <i class="fas fa-caret-down ml-2"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block z-10">
+                            {{#each genres}}
+                            <a href="/movies?genre={{this}}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">{{this}}</a>
+                            {{/each}}
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <button class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                            Sort By <i class="fas fa-caret-down ml-2"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block z-10">
+                            <a href="/movies?sort=latest" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Latest</a>
+                            <a href="/movies?sort=rating" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Rating</a>
+                            <a href="/movies?sort=title" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Title</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trending Movies Carousel -->
+        <div class="carousel-container" id="trendingMoviesContainer">
+            <h2 class="carousel-title">Trending Now</h2>
+            <div class="carousel" id="trendingMovies">
+                <!-- Trending movies will be loaded here -->
+                <div class="flex justify-center items-center w-full">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                </div>
+            </div>
+            <div class="carousel-nav carousel-nav-left" onclick="scrollCarousel('trendingMovies', -750)">
+                <i class="fas fa-chevron-left text-2xl"></i>
+            </div>
+            <div class="carousel-nav carousel-nav-right" onclick="scrollCarousel('trendingMovies', 750)">
+                <i class="fas fa-chevron-right text-2xl"></i>
+            </div>
+        </div>
+
+        <!-- Movies Grid -->
+        <h2 class="text-2xl font-bold mb-4">All Movies</h2>
+        <div id="featured" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            {{#each movies}}
+            <div class="movie-card relative rounded-lg overflow-hidden">
+                <a href="/movies/{{this._id}}">
+                    <img src="{{this.posterPath}}" alt="{{this.title}}" class="w-full h-auto">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent movie-info">
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <h3 class="text-xl font-bold mb-2">{{this.title}}</h3>
+                            <div class="flex items-center mb-2">
+                                <span class="text-yellow-500 mr-2">
+                                    <i class="fas fa-star"></i>
+                                </span>
+                                <span>{{this.ratings}}/10</span>
+                                <span class="mx-2">•</span>
+                                <span>{{this.releaseDate}}</span>
+                                {{#if this.isFree}}
+                                <span class="mx-2">•</span>
+                                <span class="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">FREE</span>
+                                {{/if}}
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                {{#each this.genres}}
+                                <span class="genre-tag text-xs px-2 py-1 rounded-full">{{this}}</span>
+                                {{/each}}
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{{#if this.videoUrl}}{{#if this.isFree}}/movies/{{this._id}}/watch-free{{else}}{{#if (isRemoteUrl this.videoUrl)}}{{this.videoUrl}}{{else}}{{this.videoUrl}}{{/if}}{{/if}}{{else}}/movies/{{this._id}}/watch{{/if}}" class="bg-red-600 text-white px-4 py-1 rounded-md hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-play mr-1"></i> Play
+                                </a>
+                                <button class="watchlist-btn bg-gray-800 text-white px-4 py-1 rounded-md hover:bg-gray-700 transition-colors" 
+                                        data-id="{{this._id}}" 
+                                        data-in-watchlist="{{#if (inWatchlist this._id ../user.watchlist)}}true{{else}}false{{/if}}">
+                                    <i class="fas {{#if (inWatchlist this._id ../user.watchlist)}}fa-bookmark{{else}}fa-bookmark{{/if}} mr-1"></i>
+                                    {{#if (inWatchlist this._id ../user.watchlist)}}Remove{{else}}Add{{/if}}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {{/each}}
+        </div>
+
+        <!-- Pagination -->
+        {{#if (gt totalPages 1)}}
+        <div class="flex justify-center space-x-2">
+            {{#if (gt currentPage 1)}}
+            <a href="/movies?page={{subtract currentPage 1}}{{#if query.genre}}&genre={{query.genre}}{{/if}}{{#if query.search}}&search={{query.search}}{{/if}}" 
+               class="pagination-btn bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                <i class="fas fa-chevron-left mr-1"></i> Previous
+            </a>
+            {{/if}}
+            
+            {{#times totalPages}}
+            <a href="/movies?page={{this}}{{#if ../query.genre}}&genre={{../query.genre}}{{/if}}{{#if ../query.search}}&search={{../query.search}}{{/if}}" 
+               class="pagination-btn {{#if (eq this ../currentPage)}}bg-red-600{{else}}bg-gray-800{{/if}} text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                {{this}}
+            </a>
+            {{/times}}
+            
+            {{#if (lt currentPage totalPages)}}
+            <a href="/movies?page={{add currentPage 1}}{{#if query.genre}}&genre={{query.genre}}{{/if}}{{#if query.search}}&search={{query.search}}{{/if}}" 
+               class="pagination-btn bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                Next <i class="fas fa-chevron-right ml-1"></i>
+            </a>
+            {{/if}}
+        </div>
+        {{/if}}
+    </div>
+
+    <script>
+        // Carousel scroll function
+        function scrollCarousel(carouselId, scrollAmount) {
+            const carousel = document.getElementById(carouselId);
+            carousel.scrollBy({
+                left: scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+
+        // Create movie card for carousel
+        function createMovieCard(movie, isTMDB = false) {
+            const card = document.createElement('div');
+            card.className = 'carousel-item movie-card relative rounded-lg overflow-hidden';
+            
+            // Create the link to the correct destination
+            const link = document.createElement('a');
+            // If it's a TMDB movie without a local ID, make it handle click event instead of navigation
+            link.href = "#"; // Use # to prevent navigation
+            
+            // Create poster image
+            const img = document.createElement('img');
+            img.src = movie.posterPath || 'https://via.placeholder.com/300x450?text=No+Poster';
+            img.alt = movie.title;
+            img.className = 'w-full h-auto';
+            
+            // Create movie info overlay
+            const infoOverlay = document.createElement('div');
+            infoOverlay.className = 'absolute inset-0 bg-gradient-to-t from-black to-transparent movie-info';
+            
+            // Create movie title bar
+            const titleBar = document.createElement('div');
+            titleBar.className = 'movie-title-bar';
+            titleBar.innerHTML = `
+                <h3 class="text-sm font-bold">${movie.title}</h3>
+                <div class="flex items-center text-xs">
+                    <span class="text-yellow-500 mr-1">
+                        <i class="fas fa-star"></i>
+                    </span>
+                    <span>${movie.ratings ? movie.ratings.toFixed(1) : 'N/A'}</span>
+                </div>
+            `;
+            
+            // Assemble the card
+            link.appendChild(img);
+            link.appendChild(infoOverlay);
+            link.appendChild(titleBar);
+            card.appendChild(link);
+            
+            // Add click handler to load the movie's details and trailer
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log(`Clicked on movie: ${movie.title} (ID: ${movie.id})`);
+                
+                // Update the featured content with this movie's info
+                document.getElementById('featuredTitle').textContent = movie.title;
+                document.getElementById('featuredOverview').textContent = movie.overview || 'No description available';
+                
+                // First show the description
+                const heroContent = document.getElementById('heroContent');
+                heroContent.classList.remove('hidden-description');
+                
+                // Show loading indicator
+                const videoContainer = document.getElementById('heroVideoContainer');
+                videoContainer.innerHTML = `
+                    <div class="flex justify-center items-center w-full h-full bg-black">
+                        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600"></div>
+                    </div>
+                `;
+                
+                // After a brief delay, hide the description and load trailer
+                setTimeout(() => {
+                    // Hide description
+                    heroContent.classList.add('hidden-description');
+                    
+                    // Get video for this specific movie
+                    const apiKey = '6ec9180bfc843aba1677d9ff1b531116';
+                    fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to fetch videos');
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Find trailers in the results
+                            const trailers = data.results.filter(video => 
+                                video.site === 'YouTube' && 
+                                (video.type === 'Trailer' || video.type === 'Teaser')
+                            );
+                            
+                            if (trailers.length > 0) {
+                                // Use the first trailer
+                                const trailer = trailers[0];
+                                console.log(`Loading trailer: ${trailer.name} (${trailer.key})`);
+                                
+                                // Update the video container with this trailer
+                                videoContainer.innerHTML = `
+                                    <iframe 
+                                        width="100%" 
+                                        height="100%" 
+                                        src="https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0&loop=1&playlist=${trailer.key}&modestbranding=1&playsinline=1" 
+                                        frameborder="0" 
+                                        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowfullscreen>
+                                    </iframe>
+                                `;
+                                
+                                // Update watch button to link to the full trailer
+                                document.getElementById('featuredWatch').href = `https://www.youtube.com/watch?v=${trailer.key}`;
+                            } else {
+                                // No trailer found, use the default video
+                                console.log('No trailer found, using default video');
+                                videoContainer.innerHTML = `
+                                    <div style="position: absolute; width: 100%; height: 100%; background-color: #000;">
+                                        <video id="heroVideo" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;">
+                                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                        
+                                        <div style="position: absolute; bottom: 20px; right: 20px; background-color: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;">
+                                            <button id="muteToggle" style="background: none; border: none; color: white; cursor: pointer;">
+                                                <i class="fas fa-volume-mute"></i> Unmute
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                // Add mute toggle functionality
+                                setTimeout(() => {
+                                    const video = document.getElementById('heroVideo');
+                                    const muteToggle = document.getElementById('muteToggle');
+                                    
+                                    if (video && muteToggle) {
+                                        muteToggle.addEventListener('click', () => {
+                                            video.muted = !video.muted;
+                                            if (video.muted) {
+                                                muteToggle.innerHTML = '<i class="fas fa-volume-mute"></i> Unmute';
+                                            } else {
+                                                muteToggle.innerHTML = '<i class="fas fa-volume-up"></i> Mute';
+                                            }
+                                        });
+                                    }
+                                }, 500);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading trailer:', error);
+                            // Show fallback image or video on error
+                            videoContainer.innerHTML = `
+                                <img src="${movie.backdropPath || 'https://via.placeholder.com/1920x1080?text=No+Trailer+Available'}" 
+                                     class="absolute inset-0 w-full h-full object-cover" 
+                                     alt="${movie.title}">
+                            `;
+                        });
+                }, 3000); // Show description for 3 seconds before hiding
+            });
+            
+            return card;
+        }
+
+        // Watchlist functionality
+        document.querySelectorAll('.watchlist-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const movieId = button.dataset.id;
+                const isInWatchlist = button.dataset.inWatchlist === 'true';
+                
+                try {
+                    const response = await fetch(`/movies/${movieId}/watchlist`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to update watchlist');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Update button state
+                    button.dataset.inWatchlist = data.inWatchlist;
+                    const icon = button.querySelector('i');
+                    const text = button.textContent.trim().split(' ')[1];
+                    
+                    if (data.inWatchlist) {
+                        icon.className = 'fas fa-bookmark mr-1';
+                        button.innerHTML = `<i class="fas fa-bookmark mr-1"></i> Remove`;
+                    } else {
+                        icon.className = 'far fa-bookmark mr-1';
+                        button.innerHTML = `<i class="far fa-bookmark mr-1"></i> Add`;
+                    }
+                    
+                    // Show notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50';
+                    notification.textContent = data.message;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('Error updating watchlist:', error);
+                    
+                    // Show error notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg z-50';
+                    notification.textContent = 'Error updating watchlist';
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                }
+            });
+        });
+
+        // Load trending movies on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            const trendingContainer = document.getElementById('trendingMovies');
+            
+            try {
+                // Show loading spinner
+                trendingContainer.innerHTML = `
+                    <div class="flex justify-center items-center w-full py-8">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                    </div>
+                `;
+                
+                // Directly set up the Minecraft movie as featured
+                document.getElementById('featuredTitle').textContent = 'A Minecraft Movie';
+                document.getElementById('featuredOverview').textContent = 'Four misfits find themselves struggling with ordinary problems when they are suddenly pulled through a mysterious portal into the Overworld: a bizarre, cubic wonderland that thrives on imagination. To get back home, they\'ll have to master this world while embarking on a magical quest with an unexpected, expert crafter, Steve.';
+                
+                // Use a fixed TMDB ID for the Minecraft movie or use a placeholder
+                const minecraftTrailerId = "MmB9b5njVbA";  // YouTube ID for Minecraft trailer
+                
+                // Load the Minecraft trailer directly
+                const videoContainer = document.getElementById('heroVideoContainer');
+                videoContainer.innerHTML = `
+                    <div style="position: absolute; width: 100%; height: 100%; background-color: #000;">
+                        <video id="heroVideo" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;">
+                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        
+                        <div style="position: absolute; bottom: 20px; right: 20px; background-color: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;">
+                            <button id="muteToggle" style="background: none; border: none; color: white; cursor: pointer;">
+                                <i class="fas fa-volume-mute"></i> Unmute
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add mute toggle functionality
+                setTimeout(() => {
+                    const video = document.getElementById('heroVideo');
+                    const muteToggle = document.getElementById('muteToggle');
+                    
+                    if (video && muteToggle) {
+                        muteToggle.addEventListener('click', () => {
+                            video.muted = !video.muted;
+                            if (video.muted) {
+                                muteToggle.innerHTML = '<i class="fas fa-volume-mute"></i> Unmute';
+                            } else {
+                                muteToggle.innerHTML = '<i class="fas fa-volume-up"></i> Mute';
+                            }
+                        });
+                        
+                        // Try to play the video with user interaction
+                        document.addEventListener('click', () => {
+                            video.play().catch(e => console.error('Could not play video:', e));
+                        }, { once: true });
+                    }
+                }, 500);
+                
+                // Auto-hide description
+                const heroContent = document.getElementById('heroContent');
+                heroContent.classList.add('hidden-description');
+                
+                // Try fetching movies from our backend first
+                try {
+                    console.log('Fetching trending movies from backend API...');
+                    const response = await fetch('/movies/trending');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                    
+                    const trendingMovies = await response.json();
+                    console.log(`Received ${trendingMovies.length} trending movies from backend`);
+                    
+                    // Clear loading spinner
+                    trendingContainer.innerHTML = '';
+                    
+                    // Create movie cards for each trending movie
+                    trendingMovies.forEach(movie => {
+                        const card = createMovieCard(movie, true);
+                        trendingContainer.appendChild(card);
+                    });
+                    
+                    // Rest of the function remains the same...
+                } catch (backendError) {
+                    console.error('Backend API failed:', backendError);
+                    console.log('Falling back to direct TMDB API call...');
+                    
+                    // If backend fails, try direct TMDB API call
+                    // This is a fallback mechanism that doesn't rely on our backend
+                    const apiKey = '6ec9180bfc843aba1677d9ff1b531116';
+                    const tmdbResponse = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`);
+                    
+                    if (!tmdbResponse.ok) {
+                        throw new Error(`TMDB API HTTP error ${tmdbResponse.status}`);
+                    }
+                    
+                    const tmdbData = await tmdbResponse.json();
+                    console.log(`Received ${tmdbData.results.length} trending movies directly from TMDB`);
+                    
+                    // Transform TMDB data to our expected format
+                    const trendingMovies = tmdbData.results.map(movie => ({
+                        id: movie.id,
+                        title: movie.title || 'Unknown Title',
+                        overview: movie.overview || 'No overview available',
+                        posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+                        backdropPath: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
+                        releaseDate: movie.release_date || 'Unknown',
+                        ratings: movie.vote_average || 0
+                    }));
+                    
+                    // Clear loading spinner
+                    trendingContainer.innerHTML = '';
+                    
+                    // Create movie cards for each trending movie
+                    trendingMovies.forEach(movie => {
+                        const card = createMovieCard(movie, true);
+                        trendingContainer.appendChild(card);
+                    });
+                    
+                    // Pick a random movie from trending to feature
+                    if (trendingMovies.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * trendingMovies.length);
+                        const featuredMovie = trendingMovies[randomIndex];
+                        
+                        // Update hero section with featured movie info
+                        document.getElementById('featuredTitle').textContent = featuredMovie.title;
+                        document.getElementById('featuredOverview').textContent = featuredMovie.overview;
+                        
+                        // Try to get a trailer for the featured movie
+                        createMovieCard(featuredMovie, true);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error loading trending movies:', error);
+                trendingContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center w-full py-8 text-center">
+                        <p class="text-gray-400 mb-4">Failed to load trending movies</p>
+                        <p class="text-gray-500 text-sm">${error.message}</p>
+                        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+                
+                // Still need to show something in the hero section
+                document.getElementById('featuredTitle').textContent = 'Welcome to Netflix Clone';
+                document.getElementById('featuredOverview').textContent = 'Discover amazing movies and TV shows in our collection.';
+                
+                // Fallback image for hero
+                const videoContainer = document.getElementById('heroVideoContainer');
+                videoContainer.innerHTML = `
+                    <img src="https://via.placeholder.com/1920x1080?text=Welcome+to+Netflix+Clone" class="absolute inset-0 w-full h-full object-cover" alt="Welcome">
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 

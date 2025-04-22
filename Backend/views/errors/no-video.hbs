@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Unavailable - Netflix Clone</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #141414;
+            color: #ffffff;
+            padding: 0 20px;
+            text-align: center;
+        }
+        
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #e50914;
+        }
+        
+        .error-title {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+        
+        .error-message {
+            font-size: 18px;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+        
+        .movie-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .movie-poster {
+            max-width: 200px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .error-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .error-button {
+            background-color: #e50914;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .error-button.secondary {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .error-button:hover {
+            background-color: #f40612;
+        }
+        
+        .error-button.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    {{> navbar}}
+    
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h1 class="error-title">Video Unavailable</h1>
+        
+        <p class="error-message">{{message}}</p>
+        
+        {{#if movie}}
+        <div class="movie-info">
+            <img src="{{#if movie.posterPath}}https://image.tmdb.org/t/p/w300{{movie.posterPath}}{{else}}/images/no-poster.png{{/if}}" 
+                alt="{{movie.title}}" class="movie-poster">
+            <h3>{{movie.title}}</h3>
+            {{#if movie.releaseDate}}
+            <p>Released: {{movie.releaseDate}}</p>
+            {{/if}}
+        </div>
+        {{/if}}
+        
+        <div class="error-actions">
+            <a href="/dashboard" class="error-button">Return to Dashboard</a>
+            <a href="javascript:history.back()" class="error-button secondary">Go Back</a>
+            {{#if movie}}
+            <a href="/movies/{{movie._id}}" class="error-button secondary">View Details</a>
+            {{/if}}
+        </div>
+    </div>
+    
+    <script src="https://kit.fontawesome.com/your-font-awesome-kit.js"></script>
+    <script>
+        // Check if we have any specific error details to log
+        console.log('Video unavailable: {{message}}');
+    </script>
+</body>
+</html> 

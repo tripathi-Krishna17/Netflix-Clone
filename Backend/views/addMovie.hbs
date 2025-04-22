@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Movie - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .glass-effect {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--netflix-red);
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.25);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .movie-card {
+            transition: all 0.3s ease;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .add-btn {
+            background: linear-gradient(45deg, var(--netflix-red), #ff4b2b);
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-black p-4">
+    <canvas id="background-canvas"></canvas>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <div class="container mx-auto">
+        <div class="glass-effect p-8 rounded-2xl space-y-8">
+            <!-- Back Button -->
+            <a href="/admin/dashboard" class="inline-flex items-center text-white hover:text-red-500 transition-colors duration-300 mb-8">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Dashboard
+            </a>
+
+            <h1 class="text-3xl font-bold text-white mb-8">Add New Movie</h1>
+
+            <!-- Search Form -->
+            <div class="glass-effect rounded-xl p-6">
+                <div class="flex gap-4 mb-6">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="Search for movies..." 
+                            class="w-full px-4 py-2 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <button id="fetchLatest" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors duration-300">
+                        Fetch Latest
+                    </button>
+                </div>
+            </div>
+
+            <!-- Movie Details Section -->
+            <div class="movie-details hidden" id="movieDetails">
+                <div class="flex flex-col md:flex-row gap-8 p-6 bg-black/40 backdrop-blur-sm rounded-xl">
+                    <div class="w-full md:w-1/3">
+                        <img id="moviePoster" src="" alt="Movie Poster" class="w-full rounded-lg shadow-lg">
+                    </div>
+                    <div class="w-full md:w-2/3">
+                        <h2 id="movieTitle" class="text-3xl font-bold mb-4"></h2>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <p class="text-gray-400">Release Date</p>
+                                <p id="movieReleaseDate" class="font-semibold"></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400">Runtime</p>
+                                <p id="movieRuntime" class="font-semibold"></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400">Rating</p>
+                                <p id="movieRating" class="font-semibold"></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400">Genres</p>
+                                <p id="movieGenres" class="font-semibold"></p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-gray-400">Overview</p>
+                            <p id="movieOverview" class="mt-2"></p>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-gray-400">Cast</p>
+                            <div id="movieCast" class="flex gap-4 mt-2 overflow-x-auto"></div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-gray-400">Production Companies</p>
+                            <div id="movieCompanies" class="flex gap-4 mt-2 overflow-x-auto"></div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-gray-400">Available Videos</p>
+                            <div id="movieVideos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                <!-- Videos will be populated here -->
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-400 mb-2">Video File</label>
+                            <input type="file" id="movieVideo" accept="video/mp4,video/webm,video/x-matroska" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" onchange="validateFileSize(this)">
+                            <p class="text-sm text-gray-400 mt-1">Supported formats: MP4, WebM, MKV (Max size: 2GB)</p>
+                            <p id="fileSizeError" class="text-sm text-red-500 mt-1 hidden"></p>
+                        </div>
+                        <div class="flex items-center gap-4 mt-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="isFreeToggle" class="form-checkbox h-5 w-5 text-red-600">
+                                <span class="text-white">Mark as Free Content</span>
+                            </label>
+                            <button id="addToLibrary" onclick="handleAddToLibrary(); return false;" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                Add to Library
+                            </button>
+                            <button id="addToLibrarySimple" onclick="simpleAddClick(); return false;" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                Add Without Video
+                            </button>
+                        </div>
+                        <div class="mt-2 text-yellow-400 text-sm">
+                            <strong>Note:</strong> For video uploads, Docker must be running. If Docker is not available, use "Add Without Video".
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Progress Section -->
+            <div id="uploadProgressContainer" class="hidden mb-8 glass-effect rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Upload Progress</h3>
+                <div class="flex flex-col space-y-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span id="uploadFileName" class="text-white"></span>
+                        <span id="uploadPercent" class="text-white font-medium">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+                        <div id="uploadProgressBar" class="bg-red-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div id="uploadStatusMessage" class="text-gray-300 text-sm">Preparing upload...</div>
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span id="uploadedSize">0 MB</span>
+                        <span id="totalSize">0 MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div id="searchResults" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Three.js Wave Animation
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.querySelector('#background-canvas'),
+            alpha: true,
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Create wave geometry
+        const waveGeometry = new THREE.PlaneGeometry(20, 20, 150, 150);
+        const waveMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color('#E50914') },
+                uMouse: { value: new THREE.Vector2(0, 0) }
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform vec2 uMouse;
+                varying vec2 vUv;
+                varying float vElevation;
+
+                void main() {
+                    vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+                    
+                    float elevation = sin(modelPosition.x * 2.0 + uTime * 2.0) * 0.2
+                                  * sin(modelPosition.y * 2.0 + uTime * 2.0) * 0.2;
+                    
+                    float distanceToMouse = length(uv - uMouse);
+                    float mouseRipple = sin(distanceToMouse * 10.0 - uTime * 5.0) * 0.1
+                                    * smoothstep(0.5, 0.0, distanceToMouse);
+                    
+                    elevation += mouseRipple;
+                    
+                    modelPosition.z += elevation;
+                    
+                    vElevation = elevation;
+                    vUv = uv;
+
+                    vec4 viewPosition = viewMatrix * modelPosition;
+                    vec4 projectedPosition = projectionMatrix * viewPosition;
+
+                    gl_Position = projectedPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                varying vec2 vUv;
+                varying float vElevation;
+
+                void main() {
+                    float intensity = vElevation * 5.0 + 0.5;
+                    vec3 color = mix(uColor, vec3(1.0), vElevation * 0.5);
+                    gl_FragColor = vec4(color, intensity * 0.7);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+
+        const waves = new THREE.Mesh(waveGeometry, waveMaterial);
+        waves.rotation.x = -Math.PI * 0.45;
+        scene.add(waves);
+
+        camera.position.set(0, 0, 3);
+
+        // Mouse interaction
+        const mouse = {
+            x: 0,
+            y: 0,
+            target: { x: 0, y: 0 }
+        };
+
+        document.addEventListener('mousemove', (event) => {
+            mouse.target.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.target.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Animation
+        const clock = new THREE.Clock();
+
+        function animate() {
+            const elapsedTime = clock.getElapsedTime();
+
+            mouse.x += (mouse.target.x - mouse.x) * 0.05;
+            mouse.y += (mouse.target.y - mouse.y) * 0.05;
+
+            waveMaterial.uniforms.uTime.value = elapsedTime;
+            waveMaterial.uniforms.uMouse.value.set(mouse.x * 0.5 + 0.5, mouse.y * 0.5 + 0.5);
+
+            waves.rotation.z = elapsedTime * 0.05;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+
+        // Movie Search Functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+
+            if (query.length < 3) {
+                searchResults.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                searchMovies(query);
+            }, 500);
+        });
+
+        async function searchMovies(query) {
+            try {
+                // Show loading indicator
+                searchResults.innerHTML = '<div class="text-center w-full py-4"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div><p class="text-gray-400 mt-2">Searching for movies...</p></div>';
+                
+                const response = await fetch(`/admin/api/movies/search?q=${encodeURIComponent(query)}`);
+                const contentType = response.headers.get('content-type');
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.details || data.error || 'Failed to search movies');
+                }
+                
+                if (data.length === 0) {
+                    searchResults.innerHTML = '<p class="text-gray-400 text-center py-8">No movies found. Try a different search term.</p>';
+                    return;
+                }
+                
+                displayResults(data);
+            } catch (error) {
+                console.error('Error searching movies:', error);
+                searchResults.innerHTML = `
+                    <div class="w-full bg-red-900/50 border border-red-500 rounded-lg p-4 text-center">
+                        <h3 class="text-red-500 font-medium text-lg mb-2">Search Error</h3>
+                        <p class="text-white">${error.message || 'Error searching for movies. Please try again.'}</p>
+                        <button onclick="searchMovies('${searchInput.value.trim()}')" class="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Try Again
+                        </button>
+                    </div>`;
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = results.map(movie => `
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg transform transition-all duration-300 hover:scale-105 cursor-pointer" 
+                     onclick="displayMovieDetails(${movie.id})">
+                    <img src="${movie.posterPath || '/img/no-poster.svg'}" alt="${movie.title}" class="w-full h-64 object-cover" onerror="this.src='/img/no-poster.svg'">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-white mb-2">${movie.title}</h3>
+                        <p class="text-gray-400 mb-4">${movie.overview ? (movie.overview.length > 100 ? movie.overview.substring(0, 100) + '...' : movie.overview) : 'No description available'}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-red-500 font-medium">${movie.ratings}/10</span>
+                            <span class="text-gray-400">${movie.releaseDate || 'Unknown'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Function to display movie details
+        async function displayMovieDetails(movieId) {
+            try {
+                // Show loading indicator in the movieDetails area
+                document.getElementById('movieDetails').classList.remove('hidden');
+                document.getElementById('movieDetails').innerHTML = `
+                    <div class="flex justify-center items-center p-16">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
+                        <p class="text-gray-400 ml-4">Loading movie details...</p>
+                    </div>`;
+                
+                const response = await fetch(`/admin/api/movies/${movieId}/details`);
+                const contentType = response.headers.get('content-type');
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.details || data.error || 'Failed to fetch movie details');
+                }
+                
+                const movie = data;
+                
+                // Reset the movieDetails area with the proper structure
+                document.getElementById('movieDetails').innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-8 p-6 bg-black/40 backdrop-blur-sm rounded-xl">
+                        <div class="w-full md:w-1/3">
+                            <img id="moviePoster" src="${movie.posterPath || '/img/no-poster.svg'}" alt="${movie.title}" class="w-full rounded-lg shadow-lg" onerror="this.src='/img/no-poster.svg'">
+                        </div>
+                        <div class="w-full md:w-2/3">
+                            <h2 id="movieTitle" class="text-3xl font-bold mb-4">${movie.title}</h2>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <p class="text-gray-400">Release Date</p>
+                                    <p id="movieReleaseDate" class="font-semibold">${movie.releaseDate}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Runtime</p>
+                                    <p id="movieRuntime" class="font-semibold">${movie.runtime} minutes</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Rating</p>
+                                    <p id="movieRating" class="font-semibold">${movie.ratings}/10</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Genres</p>
+                                    <p id="movieGenres" class="font-semibold">${movie.genres.join(', ')}</p>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <p class="text-gray-400">Overview</p>
+                                <p id="movieOverview" class="mt-2">${movie.overview}</p>
+                            </div>
+                            <div class="mb-4">
+                                <p class="text-gray-400">Cast</p>
+                                <div id="movieCast" class="flex gap-4 mt-2 overflow-x-auto">
+                                    ${movie.cast.map(actor => `
+                    <div class="flex flex-col items-center">
+                                            <img src="${actor.profilePath || '/img/no-profile.svg'}" alt="${actor.name}" class="w-16 h-16 rounded-full object-cover" onerror="this.src='/img/no-profile.svg'">
+                        <span class="text-white text-sm mt-2">${actor.name}</span>
+                        <span class="text-gray-400 text-xs">${actor.character}</span>
+                    </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <p class="text-gray-400">Production Companies</p>
+                                <div id="movieCompanies" class="flex gap-4 mt-2 overflow-x-auto">
+                                    ${movie.productionCompanies.map(company => `
+                    <div class="flex flex-col items-center">
+                                            <img src="${company.logoPath || '/img/no-logo.svg'}" alt="${company.name}" class="h-8 object-contain" onerror="this.src='/img/no-logo.svg'">
+                        <span class="text-white text-sm mt-2">${company.name}</span>
+                    </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <p class="text-gray-400">Available Videos</p>
+                                <div id="movieVideos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                    ${movie.videos && movie.videos.length > 0 ? movie.videos.map(video => `
+                    <div class="video-item bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors" 
+                         data-video-key="${video.key}" 
+                         onclick="selectVideo(this, '${video.key}')">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-white font-medium">${video.name}</h4>
+                                <p class="text-gray-400 text-sm">${video.type} • ${video.official ? 'Official' : 'Unofficial'}</p>
+                            </div>
+                            <div class="video-preview">
+                                <img src="https://img.youtube.com/vi/${video.key}/mqdefault.jpg" 
+                                     alt="${video.name}" 
+                                     class="w-32 h-20 object-cover rounded">
+                            </div>
+                        </div>
+                    </div>
+                                    `).join('') : '<p class="text-gray-400">No videos available</p>'}
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-400 mb-2">Video File</label>
+                                <input type="file" id="movieVideo" accept="video/mp4,video/webm,video/x-matroska" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" onchange="validateFileSize(this)">
+                                <p class="text-sm text-gray-400 mt-1">Supported formats: MP4, WebM, MKV (Max size: 2GB)</p>
+                                <p id="fileSizeError" class="text-sm text-red-500 mt-1 hidden"></p>
+                            </div>
+                            <div class="flex items-center gap-4 mt-6">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="isFreeToggle" class="form-checkbox h-5 w-5 text-red-600">
+                                    <span class="text-white">Mark as Free Content</span>
+                                </label>
+                                <button id="addToLibrary" onclick="handleAddToLibrary(); return false;" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                    Add to Library
+                                </button>
+                                <button id="addToLibrarySimple" onclick="simpleAddClick(); return false;" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    Add Without Video
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Store movie ID for later use
+                document.getElementById('movieDetails').dataset.movieId = movieId;
+                
+            } catch (error) {
+                console.error('Error fetching movie details:', error);
+                document.getElementById('movieDetails').innerHTML = `
+                    <div class="w-full bg-red-900/50 border border-red-500 rounded-lg p-8 text-center">
+                        <h3 class="text-red-500 font-medium text-xl mb-3">Error Loading Movie Details</h3>
+                        <p class="text-white mb-4">${error.message || 'Error fetching movie details. Please try again.'}</p>
+                        <button onclick="displayMovieDetails(${movieId})" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            Try Again
+                        </button>
+                    </div>`;
+            }
+        }
+
+        let selectedVideoKey = null;
+
+        function selectVideo(element, videoKey) {
+            // Remove selection from all videos
+            document.querySelectorAll('.video-item').forEach(item => {
+                item.classList.remove('ring-2', 'ring-red-500');
+            });
+            
+            // Add selection to clicked video
+            element.classList.add('ring-2', 'ring-red-500');
+            selectedVideoKey = videoKey;
+        }
+
+        // Add fetch latest functionality
+        document.getElementById('fetchLatest').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/admin/api/movies/fetch-latest');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch latest movies');
+                }
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error fetching latest movies:', error);
+                alert(error.message || 'Error fetching latest movies. Please try again.');
+            }
+        });
+
+        // Add file size validation function
+        function validateFileSize(input) {
+            const fileSizeError = document.getElementById('fileSizeError');
+            const maxSize = 2 * 1024 * 1024 * 1024; // 2GB in bytes
+            
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                if (file.size > maxSize) {
+                    fileSizeError.textContent = 'File is too large. Maximum size is 2GB.';
+                    fileSizeError.classList.remove('hidden');
+                    input.value = ''; // Clear the file input
+                } else {
+                    fileSizeError.classList.add('hidden');
+                }
+            }
+        }
+
+        // Upload progress tracking
+        let uploadSessionId = null;
+        let progressInterval = null;
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function updateProgressUI(progressData) {
+            const progressContainer = document.getElementById('uploadProgressContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const percentEl = document.getElementById('uploadPercent');
+            const messageEl = document.getElementById('uploadStatusMessage');
+            const fileNameEl = document.getElementById('uploadFileName');
+            const uploadedEl = document.getElementById('uploadedSize');
+            const totalEl = document.getElementById('totalSize');
+            
+            // Always show progress container when this function is called
+            progressContainer.classList.remove('hidden');
+            
+            // Update progress bar
+            progressBar.style.width = `${progressData.percent}%`;
+            percentEl.textContent = `${progressData.percent}%`;
+            messageEl.textContent = progressData.message || 'Uploading...';
+            
+            // Update file info if available
+            if (progressData.fileName) {
+                fileNameEl.textContent = progressData.fileName;
+            }
+            
+            // Update size info if available
+            if (progressData.uploaded !== undefined && progressData.total !== undefined) {
+                uploadedEl.textContent = formatFileSize(progressData.uploaded);
+                totalEl.textContent = formatFileSize(progressData.total);
+            }
+            
+            // Handle error state
+            if (progressData.error) {
+                progressBar.classList.remove('bg-red-600');
+                progressBar.classList.add('bg-red-900');
+                messageEl.classList.add('text-red-500');
+            } else {
+                progressBar.classList.add('bg-red-600');
+                progressBar.classList.remove('bg-red-900');
+                messageEl.classList.remove('text-red-500');
+            }
+            
+            // Handle completion
+            if (progressData.complete) {
+                stopProgressTracking();
+                
+                // Show success message with animation
+                progressBar.classList.add('bg-green-500');
+                progressBar.classList.remove('bg-red-600');
+                
+                // Auto-hide progress after 5 seconds on success
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        function trackUploadProgress(sessionId) {
+            uploadSessionId = sessionId;
+            
+            // Clear any existing interval
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            // Set up polling for progress updates
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/admin/api/upload-progress/${sessionId}`);
+                    const progressData = await response.json();
+                    
+                    // Update UI with progress data
+                    updateProgressUI(progressData);
+                    
+                    // If upload is complete or errored, stop tracking
+                    if (progressData.complete || progressData.error) {
+                        stopProgressTracking();
+                    }
+                } catch (error) {
+                    console.error('Error fetching upload progress:', error);
+                }
+            }, 500); // Check every 500ms
+        }
+
+        function stopProgressTracking() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+
+        // Add this function to verify authentication status
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/admin/auth-check', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                return data.authenticated && data.isAdmin;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                return false;
+            }
+        }
+
+        // Add a simplified function to add movies without video
+        async function addMovieWithoutVideo(movieId, isFree) {
+            try {
+                const response = await fetch('/admin/api/movies/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        movieId,
+                        isFree
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || errorData.details || 'Failed to add movie');
+                }
+
+                const data = await response.json();
+                showToast('Movie added successfully (without video)', 'success');
+                
+                // Clear form
+                document.getElementById('movieDetails').classList.add('hidden');
+                document.getElementById('searchInput').value = '';
+                document.getElementById('searchResults').innerHTML = '';
+                
+                return data;
+            } catch (error) {
+                console.error('Error adding movie without video:', error);
+                showToast(error.message || 'Error adding movie', 'error');
+                throw error;
+            }
+        }
+
+        // Create a handler function for the original event listener
+        async function handleAddToLibrary() {
+            console.log('Add to Library handler called');
+            
+            // First, display loading state in the button
+            const addButton = document.getElementById('addToLibrary');
+            const originalButtonText = addButton.textContent;
+            addButton.textContent = 'Processing...';
+            addButton.disabled = true;
+            
+            try {
+                // Check auth status first
+                const isAuthorized = await checkAuthStatus();
+                if (!isAuthorized) {
+                    showToast('You are not logged in or not authorized. Please log in as an admin.', 'error');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+            const movieId = document.getElementById('movieDetails').dataset.movieId;
+            const isFree = document.getElementById('isFreeToggle').checked;
+            const videoFile = document.getElementById('movieVideo').files[0];
+            const fileSizeError = document.getElementById('fileSizeError');
+
+                console.log('Movie details:', {
+                    movieId,
+                    isFree,
+                    hasVideoFile: !!videoFile
+                });
+
+            if (!movieId) {
+                    console.error('No movie ID found');
+                showToast('Please select a movie first', 'error');
+                return;
+            }
+
+            if (videoFile && videoFile.size > 2 * 1024 * 1024 * 1024) {
+                fileSizeError.textContent = 'File is too large. Maximum size is 2GB.';
+                fileSizeError.classList.remove('hidden');
+                return;
+            }
+
+                // Generate a session ID for tracking this upload
+                const sessionId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+                
+                // Show progress container and initialize
+                const progressContainer = document.getElementById('uploadProgressContainer');
+                progressContainer.classList.remove('hidden'); // Explicitly show the container
+                
+                const initialProgress = {
+                    percent: 0,
+                    message: 'Preparing upload...',
+                    fileName: videoFile ? videoFile.name : 'No file',
+                    uploaded: 0,
+                    total: videoFile ? videoFile.size : 0
+                };
+                updateProgressUI(initialProgress);
+                
+                // Start tracking progress
+                trackUploadProgress(sessionId);
+                
+                // Create FormData to handle file upload
+                const formData = new FormData();
+                formData.append('movieId', movieId);
+                formData.append('isFree', isFree);
+                formData.append('sessionId', sessionId);
+                if (videoFile) {
+                    formData.append('video', videoFile);
+                }
+
+                console.log('Sending request with:', {
+                    movieId,
+                    isFree,
+                    hasVideo: !!videoFile,
+                    sessionId
+                });
+
+                console.log('Attempting to fetch /admin/api/movies/add...');
+                
+                let response;
+                try {
+                    response = await fetch('/admin/api/movies/add', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                    console.log('Fetch response status:', response.status);
+                } catch (fetchError) {
+                    console.error('Fetch operation failed:', fetchError);
+                    throw new Error('Server connection failed. Check if the server is running.');
+                }
+                
+                console.log('Response headers:', response.headers);
+
+                let data;
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+                
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                    data = await response.json();
+                        console.log('Response data:', data);
+                    } catch (jsonError) {
+                        console.error('JSON parsing error:', jsonError);
+                        throw new Error('Failed to parse server response');
+                    }
+                } else {
+                    console.error('Non-JSON response received');
+                    try {
+                        const text = await response.text();
+                        console.log('Response text:', text);
+                    } catch (textError) {
+                        console.error('Failed to get response text:', textError);
+                    }
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(data.details || data.error || 'Failed to add movie');
+                }
+
+                if (data.success) {
+                    // Progress tracking will show the success already
+                    // Clear form
+                    document.getElementById('movieDetails').classList.add('hidden');
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('searchResults').innerHTML = '';
+                    document.getElementById('movieVideo').value = '';
+                } else {
+                    throw new Error(data.details || data.error || 'Error adding movie');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                let errorMessage = error.message;
+                
+                // Update progress UI to show error
+                updateProgressUI({
+                    percent: 0,
+                    message: `Error: ${errorMessage}`,
+                    error: true
+                });
+                
+                // Handle specific error cases
+                if (error.message.includes('Authentication required')) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (error.message.includes('Validation Error')) {
+                    errorMessage = 'Please check the movie details and try again';
+                }
+                
+                if (error.message.includes('Duplicate Error')) {
+                    errorMessage = 'This movie is already in the library';
+                }
+                
+                showToast(errorMessage, 'error');
+            } finally {
+                // Reset button text and enable button
+                addButton.textContent = originalButtonText;
+                addButton.disabled = false;
+            }
+        }
+
+        // Simple function for direct onclick handling
+        function simpleAddClick() {
+            console.log('Simple add button clicked directly via onclick attribute');
+            const movieId = document.getElementById('movieDetails').dataset.movieId;
+            const isFree = document.getElementById('isFreeToggle').checked;
+            
+            if (!movieId) {
+                alert('Please select a movie first');
+                return;
+            }
+            
+            // Show immediate feedback
+            alert('Processing request... Check console for details.');
+            
+            // Log details for debugging
+            console.log('Movie details for simple add:', {
+                movieId,
+                isFree,
+                element: document.getElementById('movieDetails'),
+                datasetId: document.getElementById('movieDetails').dataset.movieId
+            });
+            
+            // Call the actual handler with try/catch for better error visibility
+            try {
+                const addButton = document.getElementById('addToLibrarySimple');
+                addButton.textContent = 'Processing...';
+                addButton.disabled = true;
+                
+                // Make the fetch call directly for simplicity
+                fetch('/admin/api/movies/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        movieId,
+                        isFree
+                    })
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        alert('Movie added successfully!');
+                        // Clear form
+                        document.getElementById('movieDetails').classList.add('hidden');
+                        document.getElementById('searchInput').value = '';
+                        document.getElementById('searchResults').innerHTML = '';
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error: ' + error.message);
+                })
+                .finally(() => {
+                    addButton.textContent = 'Add Without Video';
+                    addButton.disabled = false;
+                });
+            } catch (error) {
+                console.error('Error in simpleAddClick:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            // Set background color based on type
+            const bgColor = type === 'success' ? 'bg-green-500' : 
+                           type === 'error' ? 'bg-red-500' : 
+                           'bg-blue-500';
+            
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transform transition-all duration-300 translate-x-full max-w-md`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 5000);
+        }
+
+        // Emergency function with absolute minimal approach
+        function emergencyAdd() {
+            const movieId = document.getElementById('movieDetails').dataset.movieId;
+            
+            if (!movieId) {
+                alert('No movie selected! Please select a movie first.');
+                return;
+            }
+            
+            alert('Emergency add triggered for movie ID: ' + movieId);
+            
+            // Super simple POST with vanilla JS
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/admin/api/movies/add', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            xhr.onload = function() {
+                alert('Response received: Status ' + xhr.status);
+                console.log('Response:', xhr.responseText);
+                
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        alert('SUCCESS: Movie added!');
+                    } else {
+                        alert('ERROR: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (e) {
+                    alert('ERROR parsing response: ' + e.message + '\n\nRaw response: ' + xhr.responseText.substring(0, 100) + '...');
+                }
+            };
+            
+            xhr.onerror = function() {
+                alert('Network error occurred');
+            };
+            
+            // Send the absolute minimal data
+            const data = JSON.stringify({
+                movieId: movieId,
+                isFree: false
+            });
+            
+            console.log('Sending emergency request with data:', data);
+            xhr.send(data);
+        }
+    </script>
+</body>
+</html> 

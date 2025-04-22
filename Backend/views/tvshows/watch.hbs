@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{tvshow.title}} - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.6.8/plyr.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        }
+
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .plyr {
+            --plyr-color-main: var(--netflix-red);
+            --plyr-video-background: var(--netflix-black);
+        }
+
+        .tvshow-info {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.9) 100%);
+        }
+
+        .genre-tag {
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        .genre-tag:hover {
+            background-color: var(--netflix-red);
+        }
+        
+        .episode-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .episode-btn:hover {
+            background-color: var(--netflix-red);
+        }
+        
+        .episode-btn.active {
+            background-color: var(--netflix-red);
+        }
+        
+        .season-tab {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .season-tab:hover {
+            color: white;
+        }
+        
+        .season-tab.active {
+            color: white;
+            border-bottom: 2px solid var(--netflix-red);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="bg-black bg-opacity-90 fixed w-full z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-red-600 text-2xl font-bold">NETFLIX</a>
+            <div class="flex items-center space-x-6">
+                <a href="/movies" class="text-gray-400 hover:text-white transition-colors">Movies</a>
+                <a href="/tvshows" class="text-white font-medium">TV Shows</a>
+                <a href="/tvshows/watchlist" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bookmark mr-1"></i> My List
+                </a>
+                <div class="relative group">
+                    <button class="flex items-center text-gray-400 hover:text-white transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{user.username}}&background=random" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+                        <span>{{user.username}}</span>
+                        <i class="fas fa-caret-down ml-2"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block">
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Settings</a>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Video Player -->
+    <div class="video-container">
+        {{#if tvshow.videoUrl}}
+            {{#if (isYouTubeUrl tvshow.videoUrl)}}
+                <iframe id="player" 
+                        src="{{tvshow.videoUrl}}?enablejsapi=1" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen
+                        class="absolute inset-0 w-full h-full">
+                </iframe>
+            {{else}}
+                <!-- Simple Native Video Player -->
+                <video id="player" controls autoplay class="absolute inset-0 w-full h-full">
+                    <source src="{{tvshow.videoUrl}}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                
+                <!-- Direct Video Link -->
+                <a href="{{tvshow.videoUrl}}" target="_blank" class="absolute bottom-0 right-0 bg-black bg-opacity-75 text-white p-2 text-xs">
+                    Open Directly
+                </a>
+            {{/if}}
+        {{else}}
+            <div class="absolute inset-0 flex items-center justify-center bg-gray-900">
+                <div class="text-center p-8">
+                    <i class="fas fa-film text-6xl text-gray-600 mb-4"></i>
+                    <h2 class="text-2xl font-bold mb-2">Video Not Available</h2>
+                    <p class="text-gray-400 mb-4">The video file has not been uploaded yet.</p>
+                    <a href="/tvshows" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        Back to TV Shows
+                    </a>
+                </div>
+            </div>
+        {{/if}}
+    </div>
+
+    <!-- TV Show Info -->
+    <div class="tvshow-info py-8">
+        <div class="container mx-auto px-4">
+            <div class="max-w-5xl">
+                <h1 class="text-3xl font-bold mb-4">{{tvshow.title}}</h1>
+                <div class="flex items-center mb-4">
+                    <span class="text-yellow-500 mr-2">
+                        <i class="fas fa-star"></i>
+                    </span>
+                    <span class="mr-4">{{tvshow.ratings}}/10</span>
+                    <span class="mr-4">First aired: {{formatDate tvshow.releaseDate}}</span>
+                    <span class="mr-4">{{tvshow.numberOfSeasons}} Season{{#if (gt tvshow.numberOfSeasons 1)}}s{{/if}}</span>
+                    {{#if tvshow.isFree}}
+                    <span class="bg-green-500 text-white px-2 py-1 rounded text-sm">Free</span>
+                    {{/if}}
+                </div>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    {{#each tvshow.genres}}
+                    <span class="genre-tag text-sm px-3 py-1 rounded-full">{{this}}</span>
+                    {{/each}}
+                </div>
+                <p class="text-lg mb-6">{{tvshow.overview}}</p>
+                
+                <!-- Season and Episode Navigation -->
+                <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                    <h2 class="text-xl font-bold mb-4">Episodes</h2>
+                    
+                    <!-- Season Tabs -->
+                    <div class="flex border-b border-gray-700 mb-4">
+                        {{#times tvshow.numberOfSeasons}}
+                        <div class="season-tab px-4 py-2 text-gray-400" data-season="{{this}}">
+                            Season {{this}}
+                        </div>
+                        {{/times}}
+                    </div>
+                    
+                    <!-- Episodes Lists (one per season, hidden by default) -->
+                    {{#times tvshow.numberOfSeasons}}
+                    <div class="episodes-list hidden" id="season-{{this}}-episodes">
+                        <!-- Placeholder for episodes -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Fake episodes for demo (in real app, you'd loop through actual episodes) -->
+                            {{#times 10}}
+                            <div class="episode-btn bg-gray-800 p-3 rounded-lg flex items-center hover:bg-gray-700 cursor-pointer" 
+                                 data-season="{{../this}}" data-episode="{{this}}">
+                                <div class="w-16 h-16 bg-gray-700 rounded mr-3 flex items-center justify-center">
+                                    <span class="text-2xl">{{this}}</span>
+                                </div>
+                                <div>
+                                    <div class="font-bold">Episode {{this}}</div>
+                                    <div class="text-xs text-gray-400">S{{../this}}:E{{this}} • 45m</div>
+                                </div>
+                            </div>
+                            {{/times}}
+                        </div>
+                    </div>
+                    {{/times}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.6.8/plyr.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let player;
+        let currentSeason = 1;
+        let currentEpisode = 1;
+        
+        // On load, get the user's progress
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(`/tvshows/{{tvshow._id}}/progress`);
+                const data = await response.json();
+                
+                if (data.season && data.episode) {
+                    currentSeason = data.season;
+                    currentEpisode = data.episode;
+                    
+                    // Highlight the correct season and episode
+                    updateSeasonDisplay(currentSeason);
+                    updateEpisodeHighlight(currentSeason, currentEpisode);
+                }
+            } catch (error) {
+                console.error('Error loading progress:', error);
+            }
+        });
+        
+        // Initialize the seasons and episodes UI
+        document.addEventListener('DOMContentLoaded', () => {
+            // Select all season tabs
+            const seasonTabs = document.querySelectorAll('.season-tab');
+            
+            // Add click event to each season tab
+            seasonTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const season = tab.dataset.season;
+                    updateSeasonDisplay(season);
+                });
+            });
+            
+            // Select all episode buttons
+            const episodeBtns = document.querySelectorAll('.episode-btn');
+            
+            // Add click event to each episode button
+            episodeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const season = btn.dataset.season;
+                    const episode = btn.dataset.episode;
+                    
+                    // Update UI
+                    updateEpisodeHighlight(season, episode);
+                    
+                    // Save progress with new season and episode
+                    saveWatchProgress(0, season, episode);
+                    
+                    // In a real implementation, you would also change the video source
+                    // to load the correct episode
+                    alert(`Playing Season ${season}, Episode ${episode}`);
+                });
+            });
+            
+            // Show the first season by default
+            updateSeasonDisplay(1);
+        });
+        
+        function updateSeasonDisplay(season) {
+            // Update UI for season tabs
+            const seasonTabs = document.querySelectorAll('.season-tab');
+            seasonTabs.forEach(tab => {
+                if (tab.dataset.season === season) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // Show the episodes for this season, hide others
+            const episodesLists = document.querySelectorAll('.episodes-list');
+            episodesLists.forEach(list => {
+                list.classList.add('hidden');
+            });
+            
+            document.getElementById(`season-${season}-episodes`).classList.remove('hidden');
+            
+            // Update current season
+            currentSeason = parseInt(season);
+        }
+        
+        function updateEpisodeHighlight(season, episode) {
+            // Update UI for episode buttons
+            const episodeBtns = document.querySelectorAll('.episode-btn');
+            episodeBtns.forEach(btn => {
+                if (btn.dataset.season === season && btn.dataset.episode === episode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Update current episode
+            currentEpisode = parseInt(episode);
+        }
+        
+        // Check if the video is from YouTube
+        const isYouTubeUrl = (url) => {
+            return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+        };
+
+        // Initialize player based on video type
+        if (document.getElementById('player')) {
+            const videoUrl = '{{tvshow.videoUrl}}';
+            console.log('Video URL:', videoUrl); // Debug log
+            
+            if (isYouTubeUrl(videoUrl)) {
+                // YouTube player
+                function onYouTubeIframeAPIReady() {
+                    player = new YT.Player('player', {
+                        events: {
+                            'onStateChange': onPlayerStateChange
+                        }
+                    });
+                }
+
+                function onPlayerStateChange(event) {
+                    if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                        saveWatchProgress(player.getCurrentTime());
+                    }
+                }
+            } else {
+                // Local video player
+                const videoElement = document.getElementById('player');
+                
+                // Add error handling for video loading
+                videoElement.addEventListener('error', (error) => {
+                    console.error('Video loading error:', error);
+                    console.log('Video element error code:', videoElement.error.code);
+                    console.log('Video element error message:', videoElement.error.message);
+                    
+                    // Show error message to user
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white';
+                    errorMessage.innerHTML = `
+                        <div class="text-center p-8">
+                            <i class="fas fa-exclamation-circle text-6xl text-red-500 mb-4"></i>
+                            <h2 class="text-2xl font-bold mb-2">Error Loading Video</h2>
+                            <p class="text-gray-400 mb-4">There was an error loading the video. Please try again later.</p>
+                            <p class="text-sm text-gray-500 mb-4">Error: ${videoElement.error.message}</p>
+                            <p class="text-sm text-gray-500 mb-4">URL: ${videoUrl}</p>
+                            <a href="/tvshows" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                Back to TV Shows
+                            </a>
+                        </div>
+                    `;
+                    document.querySelector('.video-container').appendChild(errorMessage);
+                });
+
+                // Save progress when video is paused
+                videoElement.addEventListener('pause', () => {
+                    saveWatchProgress(videoElement.currentTime);
+                });
+
+                // Save progress when video ends
+                videoElement.addEventListener('ended', () => {
+                    saveWatchProgress(videoElement.currentTime);
+                });
+
+                // Save progress periodically while playing
+                let lastSavedTime = 0;
+                const saveInterval = 5000; // 5 seconds
+
+                videoElement.addEventListener('timeupdate', () => {
+                    const currentTime = videoElement.currentTime;
+                    if (currentTime - lastSavedTime >= saveInterval) {
+                        saveWatchProgress(currentTime);
+                        lastSavedTime = currentTime;
+                    }
+                });
+            }
+        }
+
+        async function saveWatchProgress(currentTime, season = currentSeason, episode = currentEpisode) {
+            try {
+                const response = await fetch(`/tvshows/{{tvshow._id}}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        progress: currentTime,
+                        season: season,
+                        episode: episode
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save progress');
+                }
+                
+                console.log(`Progress saved: S${season}:E${episode} @ ${currentTime}s`);
+                
+            } catch (error) {
+                console.error('Error saving progress:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

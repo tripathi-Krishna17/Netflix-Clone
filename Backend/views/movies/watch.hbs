@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{movie.title}} - Netflix Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.6.8/plyr.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@300;400;500;700&display=swap');
+
+        :root {
+            --netflix-red: #E50914;
+            --netflix-black: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--netflix-black);
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        }
+
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .plyr {
+            --plyr-color-main: var(--netflix-red);
+            --plyr-video-background: var(--netflix-black);
+        }
+
+        .movie-info {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.9) 100%);
+        }
+
+        .genre-tag {
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        .genre-tag:hover {
+            background-color: var(--netflix-red);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="bg-black bg-opacity-90 fixed w-full z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-red-600 text-2xl font-bold">NETFLIX</a>
+            <div class="flex items-center space-x-6">
+                <a href="/movies" class="text-white font-medium">Movies</a>
+                <a href="/tvshows" class="text-gray-400 hover:text-white transition-colors">TV Shows</a>
+                <a href="/movies/watchlist" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bookmark mr-1"></i> My List
+                </a>
+                <div class="relative group">
+                    <button class="flex items-center text-gray-400 hover:text-white transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{user.username}}&background=random" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+                        <span>{{user.username}}</span>
+                        <i class="fas fa-caret-down ml-2"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 hidden group-hover:block">
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Settings</a>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Video Player -->
+    <div class="video-container">
+        {{#if movie.videoUrl}}
+            {{#if (isYouTubeUrl movie.videoUrl)}}
+                <iframe id="player" 
+                        src="{{movie.videoUrl}}?enablejsapi=1" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen
+                        class="absolute inset-0 w-full h-full">
+                </iframe>
+            {{else}}
+                <!-- Enhanced Video Player for SFTP and local videos with Plyr.js -->
+                <video id="player" controls crossorigin="anonymous" class="absolute inset-0 w-full h-full plyr__video-embed">
+                    <source src="{{movie.videoUrl}}" type="video/mp4">
+                    <source src="{{movie.videoUrl}}" type="video/webm">
+                    <source src="{{movie.videoUrl}}" type="video/x-matroska">
+                    Your browser does not support the video tag.
+                </video>
+                
+                <!-- Video Debug Information -->
+                <div class="absolute top-0 right-0 bg-black bg-opacity-75 text-white p-2 text-xs hidden" id="videoDebugInfo">
+                    <p>Source: {{#if (isRemoteUrl movie.videoUrl)}}SFTP Remote{{else}}Local{{/if}}</p>
+                    <p>URL: <span class="break-all">{{movie.videoUrl}}</span></p>
+                </div>
+                
+                <!-- Toggle Debug Info Button -->
+                <button class="absolute top-0 right-0 bg-black bg-opacity-75 text-white p-2 text-xs" onclick="toggleDebugInfo()">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+                
+                <!-- If video fails to load, show direct link to try -->
+                <div id="videoFallback" class="absolute bottom-4 left-0 right-0 mx-auto w-max bg-black bg-opacity-75 text-white p-4 rounded-lg text-sm hidden">
+                    <p class="font-bold mb-2">Having trouble playing the video?</p>
+                    <div class="flex flex-col space-y-2">
+                        {{#if fallbackOptions}}
+                            {{#if isMkvFile}}
+                            <a href="{{fallbackOptions.transcode}}" class="bg-green-600 px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-center">
+                                Convert to MP4 (Recommended)
+                            </a>
+                            {{/if}}
+                            <a href="{{fallbackOptions.direct}}" class="bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-center">
+                                Try Direct Player
+                            </a>
+                            <a href="{{fallbackOptions.debug}}" class="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-center">
+                                Try Debug Player
+                            </a>
+                            <a href="{{fallbackOptions.native}}" class="bg-purple-600 px-4 py-2 rounded-md hover:bg-purple-700 transition-colors text-center">
+                                Try Native Player
+                            </a>
+                            <a href="{{fallbackOptions.directSample}}" class="bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-700 transition-colors text-center">
+                                Try Direct Sample
+                            </a>
+                            <a href="{{movie.videoUrl}}" target="_blank" class="bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-700 transition-colors text-center">
+                                Open in New Tab
+                            </a>
+                            <button onclick="loadFallbackVideo()" class="bg-green-600 px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                                Load Sample Video
+                            </button>
+                        {{else}}
+                            <a href="{{movie.videoUrl}}" target="_blank" class="bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-center">
+                                Try Direct Link
+                            </a>
+                        {{/if}}
+                    </div>
+                </div>
+            {{/if}}
+        {{else}}
+            <div class="absolute inset-0 flex items-center justify-center bg-gray-900">
+                <div class="text-center p-8">
+                    <i class="fas fa-film text-6xl text-gray-600 mb-4"></i>
+                    <h2 class="text-2xl font-bold mb-2">Video Not Available</h2>
+                    <p class="text-gray-400 mb-4">The video file has not been uploaded yet.</p>
+                    <a href="/movies" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        Back to Movies
+                    </a>
+                </div>
+            </div>
+        {{/if}}
+    </div>
+
+    <!-- Movie Info -->
+    <div class="movie-info py-8">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl">
+                <h1 class="text-3xl font-bold mb-4">{{movie.title}}</h1>
+                <div class="flex items-center mb-4">
+                    <span class="text-yellow-500 mr-2">
+                        <i class="fas fa-star"></i>
+                    </span>
+                    <span class="mr-4">{{movie.ratings}}/10</span>
+                    <span class="mr-4">{{movie.releaseDate}}</span>
+                    <span class="mr-4">{{movie.runtime}} min</span>
+                    {{#if movie.isFree}}
+                    <span class="bg-green-500 text-white px-2 py-1 rounded text-sm">Free</span>
+                    {{/if}}
+                </div>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    {{#each movie.genres}}
+                    <span class="genre-tag text-sm px-3 py-1 rounded-full">{{this}}</span>
+                    {{/each}}
+                </div>
+                <p class="text-lg mb-6">{{movie.overview}}</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.6.8/plyr.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="/js/video-player.js"></script>
+    <script>
+        // YouTube-specific functionality
+        let ytPlayer;
+        let player;
+        
+        // Check if the video is from YouTube
+        const isYouTubeUrl = (url) => {
+            return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+        };
+
+        // Add debug console logging
+        console.log('DEBUG: Movie info:', {
+            title: '{{movie.title}}',
+            videoUrl: '{{movie.videoUrl}}',
+            isYouTube: isYouTubeUrl('{{movie.videoUrl}}'),
+            remotePath: {{#if (isRemoteUrl movie.videoUrl)}}'{{movie.videoUrl}}'{{else}}'Not a remote path'{{/if}},
+            fromAdmin: {{#if user.isAdmin}}true{{else}}false{{/if}}
+        });
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            const videoElement = document.getElementById('player');
+            const videoFallback = document.getElementById('videoFallback');
+            
+            console.log('DEBUG: Video element found:', !!videoElement);
+            
+            // Initialize Plyr for HTML5 video if not YouTube
+            if (videoElement && !isYouTubeUrl('{{movie.videoUrl}}')) {
+                console.log('DEBUG: Initializing Plyr for HTML5 video');
+                
+                // Show warning for MKV files which may not be directly playable in browsers
+                const videoUrl = '{{movie.videoUrl}}';
+                if (videoUrl.toLowerCase().endsWith('.mkv')) {
+                    console.log('DEBUG: MKV file detected - this format may not be playable in browsers');
+                    
+                    // Add a warning message above the player
+                    const warningDiv = document.createElement('div');
+                    warningDiv.className = 'absolute top-0 left-0 right-0 bg-yellow-600 bg-opacity-90 text-white p-2 text-sm text-center';
+                    warningDiv.textContent = 'MKV format detected - this may not play in all browsers. Try the alternative players below if needed.';
+                    videoElement.parentNode.insertBefore(warningDiv, videoElement);
+                    
+                    // Show fallback options immediately 
+                    if (videoFallback) {
+                        videoFallback.classList.remove('hidden');
+                    }
+                }
+                
+                // Test direct fetch of video URL to check accessibility
+                try {
+                    console.log('DEBUG: Testing video URL accessibility...');
+                    const testFetch = await fetch('{{movie.videoUrl}}', { method: 'HEAD' });
+                    console.log('DEBUG: Video URL test response:', testFetch.status, testFetch.statusText);
+                    
+                    // If response is not successful, show fallback
+                    if (!testFetch.ok) {
+                        console.error('DEBUG: Video URL returned error status:', testFetch.status);
+                        if (videoFallback) {
+                            videoFallback.classList.remove('hidden');
+                        }
+                    }
+                } catch (fetchErr) {
+                    console.error('DEBUG: Video URL test failed:', fetchErr);
+                    // Show fallback options immediately if fetch test fails
+                    if (videoFallback) {
+                        videoFallback.classList.remove('hidden');
+                    }
+                }
+                
+                // Initialize Plyr with more options for better compatibility
+                player = new Plyr(videoElement, {
+                    controls: [
+                        'play-large', 'play', 'progress', 'current-time',
+                        'mute', 'volume', 'captions', 'settings', 'pip', 'fullscreen'
+                    ],
+                    autoplay: false,
+                    muted: false,
+                    volume: 1,
+                    debug: true
+                });
+                
+                // Log player initialization
+                console.log('DEBUG: Plyr initialized:', !!player);
+                
+                // Auto-retry loading if initial load fails
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                // Monitor video source loading
+                videoElement.addEventListener('loadstart', () => {
+                    console.log('DEBUG: Video loadstart event triggered');
+                });
+                
+                videoElement.addEventListener('loadedmetadata', () => {
+                    console.log('DEBUG: Video loadedmetadata event triggered, duration:', videoElement.duration);
+                    // Reset retry count on successful load
+                    retryCount = 0;
+                });
+                
+                videoElement.addEventListener('canplay', () => {
+                    console.log('DEBUG: Video canplay event triggered');
+                    // Ensure fallback is hidden if video is playable
+                    if (videoFallback && !videoFallback.classList.contains('hidden')) {
+                        videoFallback.classList.add('hidden');
+                    }
+                });
+                
+                // Load watch progress
+                try {
+                    const response = await fetch('/movies/{{movie._id}}/progress');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.progress > 0) {
+                            // Set initial time (after a slight delay to ensure video is loaded)
+                            setTimeout(() => {
+                                videoElement.currentTime = data.progress;
+                                console.log('Restored watch progress:', data.progress);
+                            }, 1000);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading watch progress:', error);
+                }
+                
+                // Video error handling
+                videoElement.addEventListener('error', function(e) {
+                    console.error('Video loading error:', e);
+                    if (videoFallback) {
+                        videoFallback.classList.remove('hidden');
+                    }
+                });
+                
+                // Save progress periodically while playing
+                let lastSavedTime = 0;
+                const saveInterval = 5000; // 5 seconds
+                
+                videoElement.addEventListener('timeupdate', () => {
+                    const currentTime = videoElement.currentTime;
+                    if (currentTime - lastSavedTime >= 5) {
+                        saveWatchProgress(currentTime);
+                        lastSavedTime = currentTime;
+                    }
+                });
+
+                // Save progress when video is paused
+                videoElement.addEventListener('pause', () => {
+                    saveWatchProgress(videoElement.currentTime);
+                });
+
+                // Save progress when video ends
+                videoElement.addEventListener('ended', () => {
+                    saveWatchProgress(videoElement.currentTime);
+                });
+            }
+        });
+        
+        // YouTube API handling
+        if (isYouTubeUrl('{{movie.videoUrl}}')) {
+            function onYouTubeIframeAPIReady() {
+                ytPlayer = new YT.Player('player', {
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange,
+                        'onError': onPlayerError
+                    }
+                });
+            }
+            
+            async function onPlayerReady(event) {
+                try {
+                    const response = await fetch('/movies/{{movie._id}}/progress');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.progress > 0) {
+                            // Set initial time
+                            event.target.seekTo(data.progress);
+                            console.log('Restored watch progress:', data.progress);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading watch progress:', error);
+                }
+            }
+
+            function onPlayerStateChange(event) {
+                if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                    const currentTime = ytPlayer.getCurrentTime();
+                    saveWatchProgress(currentTime);
+                }
+            }
+            
+            function onPlayerError(event) {
+                console.error('YouTube player error:', event.data);
+                const videoFallback = document.getElementById('videoFallback');
+                if (videoFallback) {
+                    videoFallback.classList.remove('hidden');
+                }
+            }
+        }
+
+        async function saveWatchProgress(currentTime) {
+            try {
+                const response = await fetch(`/movies/{{movie._id}}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ progress: currentTime })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save progress');
+                }
+                
+                console.log(`Watch progress saved: ${currentTime.toFixed(2)} seconds`);
+            } catch (error) {
+                console.error('Error saving watch progress:', error);
+            }
+        }
+
+        // Toggle debug info display
+        function toggleDebugInfo() {
+            const debugInfo = document.getElementById('videoDebugInfo');
+            debugInfo.classList.toggle('hidden');
+        }
+
+        // Function to load a fallback video if the main one fails
+        function loadFallbackVideo() {
+            const videoElement = document.getElementById('player');
+            if (videoElement) {
+                const fallbackUrl = {{#if fallbackOptions}}'{{fallbackOptions.fallbackVideo}}'{{else}}'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'{{/if}};
+                videoElement.src = fallbackUrl;
+                videoElement.load();
+                console.log('Loaded fallback video:', fallbackUrl);
+            }
+        }
+    </script>
+</body>
+</html> 
